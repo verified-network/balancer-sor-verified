@@ -13,11 +13,6 @@
         "lint": "eslint ./src ./test --ext .ts --max-warnings 0",
         "node": "npx hardhat node --fork $(grep ALCHEMY_URL .env | cut -d '=' -f2) --fork-block-number 14828550"
     },
-    "husky": {
-        "hooks": {
-            "pre-commit": "pretty-quick --staged"
-        }
-    },
     "publishConfig": {
         "registry": "https://registry.npmjs.org/",
         "access": "public"
