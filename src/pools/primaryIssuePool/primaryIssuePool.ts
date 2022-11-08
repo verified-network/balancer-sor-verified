@@ -61,9 +61,9 @@ export class PrimaryIssuePool implements PoolBase {
     MAX_OUT_RATIO = parseFixed('0.3', 18);
 
     static fromPool(pool: SubgraphPoolBase): PrimaryIssuePool {
-        if (!pool.security)
+        if (pool.security === undefined)
             throw new Error('PrimaryIssuePool missing "security"');
-        if (!pool.currency)
+        if (pool.currency === undefined)
             throw new Error('PrimaryIssuePool missing "currency"');
         if (!pool.openingPrice)
             throw new Error('PrimaryIssuePool missing "openingPrice"');

@@ -44,6 +44,8 @@ export class CoingeckoTokenPriceService implements TokenPriceService {
         switch (this.chainId) {
             case 1:
                 return 'ethereum';
+            case 5:
+                return 'ethereum';
             case 42:
                 return 'ethereum';
             case 137:
@@ -58,6 +60,8 @@ export class CoingeckoTokenPriceService implements TokenPriceService {
     private get nativeAssetId(): string {
         switch (this.chainId) {
             case 1:
+                return 'eth';
+            case 5:
                 return 'eth';
             case 42:
                 return 'eth';

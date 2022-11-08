@@ -68,7 +68,8 @@ export const SUBGRAPH_URLS = {
     [Network.MAINNET]:
         'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-v2-beta',
     [Network.GOERLI]:
-        'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-goerli-v2',
+        //'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-goerli-v2',
+        'https://api.thegraph.com/subgraphs/name/verified-network/balancer',
     [Network.KOVAN]:
         'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-kovan-v2',
     [Network.POLYGON]:
@@ -346,6 +347,33 @@ export const ADDRESSES = {
         },
         STETH: {
             address: 'N/A',
+            decimals: 18,
+            symbol: 'STETH',
+        },
+    },
+    [Network.GOERLI]: {
+        WETH: {
+            address: '0xb7e94Cce902E34e618A23Cb82432B95d03096146',
+            decimals: 18,
+            symbol: 'WETH',
+        },
+        BAL: {
+            address: '0x040d1edc9569d4bab2d15287dc5a4f10f56a56b8',
+            decimals: 18,
+            symbol: 'BAL',
+        },
+        USDC: {
+            address: '0x07865c6e87b9f70255377e024ace6630c1eaa37f',
+            decimals: 6,
+            symbol: 'USDC',
+        },
+        DAI: {
+            address: '0x11fE4B6AE13d2a6055C8D9cF65c55bac32B5d844',
+            decimals: 18,
+            symbol: 'DAI',
+        },
+        STETH: {
+            address: '0x2C2bE232228373f31Ef649b47B33Afe01424Aae2',
             decimals: 18,
             symbol: 'STETH',
         },

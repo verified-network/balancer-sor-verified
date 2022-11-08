@@ -1,6 +1,7 @@
 import { getAddress } from '@ethersproject/address';
 import { BigNumber, formatFixed, parseFixed } from '@ethersproject/bignumber';
 import { WeiPerEther as ONE } from '@ethersproject/constants';
+import { ethers } from '@ethers';
 import {
     BigNumber as OldBigNumber,
     bnum,
@@ -60,9 +61,9 @@ export class SecondaryIssuePool implements PoolBase {
     MAX_OUT_RATIO = parseFixed('0.3', 18);
 
     static fromPool(pool: SubgraphPoolBase): SecondaryIssuePool {
-        if (!pool.security)
+        if (pool.security === undefined)
             throw new Error('SecondaryIssuePool missing "security"');
-        if (!pool.currency)
+        if (pool.currency === undefined)
             throw new Error('SecondaryIssuePool missing "currency"');
         if (!pool.secondaryOffer)
             throw new Error('SecondaryIssuePool missing "secondaryOffer"');
@@ -77,8 +78,8 @@ export class SecondaryIssuePool implements PoolBase {
             pool.security,
             pool.currency,
             pool.secondaryOffer,
-            pool.bestUnfilledBid,
-            pool.bestUnfilledOffer
+            ethers.utils.parseUnits(pool.bestUnfilledBid),
+            ethers.utils.parseUnits(pool.bestUnfilledOffer)
         );
     }
 

@@ -113,8 +113,8 @@ export interface SubgraphPoolBase {
 
     // Only Secondary pool
     secondaryOffer?: string;
-    bestUnfilledBid: BigNumber;
-    bestUnfilledOffer: BigNumber;
+    bestUnfilledBid?: string;
+    bestUnfilledOffer?: string;
 }
 
 export type SubgraphToken = {
