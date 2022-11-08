@@ -1,7 +1,7 @@
 import { getAddress } from '@ethersproject/address';
 import { BigNumber, formatFixed, parseFixed } from '@ethersproject/bignumber';
 import { WeiPerEther as ONE } from '@ethersproject/constants';
-import { ethers } from '@ethers';
+import { ethers } from 'ethers';
 import {
     BigNumber as OldBigNumber,
     bnum,
@@ -42,7 +42,7 @@ export type SecondaryIssuePoolPairData = PoolPairBase & {
     bestOffer: BigNumber;
 };
 
-export class SecondaryIssuePool implements PoolBase {    
+export class SecondaryIssuePool implements PoolBase {
     poolType: PoolTypes = PoolTypes.SecondaryIssuePool;
     id: string;
     address: string;
@@ -50,7 +50,6 @@ export class SecondaryIssuePool implements PoolBase {
     totalShares: BigNumber;
     tokens: SecondaryIssuePoolToken[];
     tokensList: string[];
-    
     security: string;
     currency: string;
     secondaryOffer: string;
@@ -67,7 +66,7 @@ export class SecondaryIssuePool implements PoolBase {
             throw new Error('SecondaryIssuePool missing "currency"');
         if (!pool.secondaryOffer)
             throw new Error('SecondaryIssuePool missing "secondaryOffer"');
-    
+
         return new SecondaryIssuePool(
             pool.id,
             pool.address,
@@ -78,8 +77,8 @@ export class SecondaryIssuePool implements PoolBase {
             pool.security,
             pool.currency,
             pool.secondaryOffer,
-            ethers.utils.parseUnits(pool.bestUnfilledBid),
-            ethers.utils.parseUnits(pool.bestUnfilledOffer)
+            ethers.utils.parseUnits(pool.bestUnfilledBid!),
+            ethers.utils.parseUnits(pool.bestUnfilledOffer!)
         );
     }
 

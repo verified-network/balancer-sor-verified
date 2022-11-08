@@ -40,7 +40,10 @@ describe('new pool tests', () => {
             const tokenOut = BAL;
             const poolSG = cloneDeep(testPools);
             const pool = SecondaryIssuePool.fromPool(poolSG.pools[0]);
-            const poolPairData = pool.parsePoolPairData("tokenIn", "tokenOut");
+            const poolPairData = pool.parsePoolPairData(
+                tokenIn.address,
+                tokenOut.address
+            );
 
             let amount = pool.getLimitAmountSwap(
                 poolPairData,
@@ -66,7 +69,10 @@ describe('new pool tests', () => {
                 const amountIn = bnum('HUMAN_AMT_IN');
                 const poolSG = cloneDeep(testPools);
                 const pool = SecondaryIssuePool.fromPool(poolSG.pools[0]);
-                const poolPairData = pool.parsePoolPairData("tokenIn", "tokenOut");
+                const poolPairData = pool.parsePoolPairData(
+                    tokenIn.address,
+                    tokenOut.address
+                );
                 const amountOut = pool._exactTokenInForTokenOut(
                     poolPairData,
                     amountIn
@@ -81,7 +87,10 @@ describe('new pool tests', () => {
                 const amountOut = bnum('HUMAN_AMT_OUT');
                 const poolSG = cloneDeep(testPools);
                 const pool = SecondaryIssuePool.fromPool(poolSG.pools[0]);
-                const poolPairData = pool.parsePoolPairData("tokenIn", "tokenOut");
+                const poolPairData = pool.parsePoolPairData(
+                    tokenIn.address,
+                    tokenOut.address
+                );
                 const amountIn = pool._tokenInForExactTokenOut(
                     poolPairData,
                     amountOut

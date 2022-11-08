@@ -8,7 +8,7 @@
             "tokens": [
                 {
                     "address": "0x6b175474e89094c44da98b954eedeac495271d0f",
-                    "balance": "1500000000.123456789123456789",
+                    "balance": "1500.123456789123456789",
                     "decimals": 18,
                     "id": "linear2id-0x6b175474e89094c44da98b954eedeac495271d0f",
                     "symbol": "DAI",
@@ -17,7 +17,7 @@
                 },
                 {
                     "address": "0xfc1e690f61efd961294b3e1ce3313fbd8aa4f85d",
-                    "balance": "1500000000.123456789123456789",
+                    "balance": "1500.123456789123456789",
                     "decimals": 18,
                     "id": "linear2id-0xfc1e690f61efd961294b3e1ce3313fbd8aa4f85d",
                     "symbol": "aDAI",
@@ -42,8 +42,8 @@
             "totalShares": "2000.000000",
             "poolType": "AaveLinear",
             "address": "0x0000000000000000000000000000000000000002",
-            "security": "",
-            "currency": "",
+            "security": "0xfc1e690f61efd961294b3e1ce3313fbd8aa4f85d",
+            "currency": "0x6b175474e89094c44da98b954eedeac495271d0f",
             "openingPrice": "10.000000",
             "maxPrice": "50.000000",
             "securityOffered": "US123456789",

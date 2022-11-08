@@ -143,14 +143,14 @@ export class PrimaryIssuePool implements PoolBase {
         const allBalances = this.tokens.map(({ balance }) => bnum(balance));
         const allBalancesScaled = this.tokens.map(({ balance }) =>
             parseFixed(balance, 18)
-        );        
+        );
 
         if (isSameAddress(tokenIn, this.currency)) { 
-            pairType = PairTypes.CashTokenToSecurityToken            
+            pairType = PairTypes.CashTokenToSecurityToken;
         } else {
             pairType = PairTypes.SecurityTokenToCashToken
         }
-        
+
         const poolPairData: PrimaryIssuePoolPairData = {
             id: this.id,
             address: this.address,
@@ -222,6 +222,7 @@ export class PrimaryIssuePool implements PoolBase {
         amount: OldBigNumber
     ): OldBigNumber {
         try {
+            console.log("amount", amount.toString());
             if (amount.isZero()) return ZERO;
 
             const isCashToken = poolPairData.pairType === PairTypes.CashTokenToSecurityToken
@@ -238,7 +239,6 @@ export class PrimaryIssuePool implements PoolBase {
                 x = securityTokens;
                 y = cashTokens;
             }
-
             // z = y-(x*(y/(x + x')))
             // where,
             // x' - tokens coming in
@@ -247,12 +247,12 @@ export class PrimaryIssuePool implements PoolBase {
             // z  - tokens going out
 
             const tokensOut = poolPairData.balanceOut.sub(
-                                poolPairData.balanceIn.mul(
-                                    poolPairData.balanceOut.div(
-                                        poolPairData.balanceIn.add(amount.toString())
-                                    )
-                                )
-                            )
+                poolPairData.balanceIn.mul(
+                    poolPairData.balanceOut.div(
+                        poolPairData.balanceIn.add(amount.toString())
+                    )
+                )
+            );
 
             return bnum(tokensOut.toString());
         } catch (err) {
