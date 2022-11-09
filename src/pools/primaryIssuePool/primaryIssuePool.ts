@@ -1,6 +1,8 @@
 import { getAddress } from '@ethersproject/address';
 import { BigNumber, formatFixed, parseFixed } from '@ethersproject/bignumber';
 import { WeiPerEther as ONE } from '@ethersproject/constants';
+import Big from 'big.js';
+
 import {
     BigNumber as OldBigNumber,
     bnum,
@@ -222,15 +224,15 @@ export class PrimaryIssuePool implements PoolBase {
         amount: OldBigNumber
     ): OldBigNumber {
         try {
-            console.log("amount", amount.toString());
             if (amount.isZero()) return ZERO;
 
-            const isCashToken = poolPairData.pairType === PairTypes.CashTokenToSecurityToken
+            const isCashToken =
+                poolPairData.pairType === PairTypes.CashTokenToSecurityToken;
 
-            const cashTokens = poolPairData.balanceIn;
-            const securityTokens = poolPairData.balanceOut;
+            const cashTokens = new Big(poolPairData.balanceIn);
+            const securityTokens = new Big(poolPairData.balanceOut);
 
-            let x: BigNumber, y: BigNumber;
+            let x: Big, y: Big;
 
             if (isCashToken) {
                 x = cashTokens;
@@ -246,15 +248,17 @@ export class PrimaryIssuePool implements PoolBase {
             // y  - total amount of tokens of the other type
             // z  - tokens going out
 
-            const tokensOut = poolPairData.balanceOut.sub(
-                poolPairData.balanceIn.mul(
-                    poolPairData.balanceOut.div(
-                        poolPairData.balanceIn.add(amount.toString())
-                    )
-                )
+            // z = 1500-(1500*(1500/1700))
+            const tokensOut = y.sub(x.mul(y.div(x.add(amount.toString()))));
+
+            const scaleTokensOut = formatFixed(
+                BigNumber.from(
+                    Math.trunc(Number(tokensOut.toString())).toString()
+                ),
+                poolPairData.decimalsOut
             );
 
-            return bnum(tokensOut.toString());
+            return bnum(scaleTokensOut);
         } catch (err) {
             console.error(`_evmoutGivenIn: ${err.message}`);
             return ZERO;
@@ -268,12 +272,13 @@ export class PrimaryIssuePool implements PoolBase {
         try {
             if (amount.isZero()) return ZERO;
 
-            const isCashToken = poolPairData.pairType === PairTypes.CashTokenToSecurityToken
+            const isCashToken =
+                poolPairData.pairType === PairTypes.CashTokenToSecurityToken;
 
-            const cashTokens = poolPairData.balanceIn;
-            const securityTokens = poolPairData.balanceOut;
+            const cashTokens = new Big(poolPairData.balanceOut);
+            const securityTokens = new Big(poolPairData.balanceIn);
 
-            let x: BigNumber, y: BigNumber;
+            let x: Big, y: Big;
 
             if (isCashToken) {
                 x = cashTokens;
@@ -290,13 +295,17 @@ export class PrimaryIssuePool implements PoolBase {
             // y  - total amount of tokens of the other type
             // z  - tokens coming in
 
-            const tokensIn = poolPairData.balanceOut.mul(
-                                poolPairData.balanceIn.div(                        
-                                    poolPairData.balanceOut.sub(amount.toString())
-                                )
-                            ).sub(poolPairData.balanceIn)
-            
-            return bnum(tokensIn.toString());
+            // z = (1500*(1500/1300))-1500
+            const tokensIn = x.mul(y.div(x.sub(amount.toString()))).sub(y);
+
+            const scaleTokensIn = formatFixed(
+                BigNumber.from(
+                    Math.trunc(Number(tokensIn.toString())).toString()
+                ),
+                poolPairData.decimalsIn
+            );
+
+            return bnum(scaleTokensIn.toString());
         } catch (err) {
             console.error(`_evminGivenOut: ${err.message}`);
             return ZERO;
@@ -308,7 +317,8 @@ export class PrimaryIssuePool implements PoolBase {
         amount: OldBigNumber
     ): OldBigNumber {
         try {
-            const isCashToken = poolPairData.pairType === PairTypes.CashTokenToSecurityToken
+            const isCashToken =
+                poolPairData.pairType === PairTypes.CashTokenToSecurityToken;
 
             const cashTokens = poolPairData.balanceIn;
             const securityTokens = poolPairData.balanceOut;
@@ -331,8 +341,10 @@ export class PrimaryIssuePool implements PoolBase {
             // z  - _exactTokenInForTokenOut
             // p  - spot price
 
-            const spotPrice =
-                x.add(amount.toString()).div(y.sub(this._exactTokenInForTokenOut.toString())).toString();
+            const spotPrice = x
+                .add(amount.toString())
+                .div(y.sub(this._exactTokenInForTokenOut.toString()))
+                .toString();
 
             return bnum(spotPrice);
 
@@ -347,7 +359,8 @@ export class PrimaryIssuePool implements PoolBase {
         amount: OldBigNumber
     ): OldBigNumber {
         try {
-            const isCashToken = poolPairData.pairType === PairTypes.CashTokenToSecurityToken
+            const isCashToken =
+                poolPairData.pairType === PairTypes.CashTokenToSecurityToken;
 
             const cashTokens = poolPairData.balanceIn;
             const securityTokens = poolPairData.balanceOut;
@@ -361,7 +374,7 @@ export class PrimaryIssuePool implements PoolBase {
                 x = securityTokens;
                 y = cashTokens;
             }
-            
+
             // sp = (x + z)/(y - y')
             // where,
             // z - tokens coming in (_tokenInForExactTokenOut)
@@ -370,8 +383,10 @@ export class PrimaryIssuePool implements PoolBase {
             // y'  - total amount of tokens going out
             // p  - spot price
 
-            const spotPrice =
-                x.add(this._tokenInForExactTokenOut.toString()).div(y.sub(amount.toString())).toString();
+            const spotPrice = x
+                .add(this._tokenInForExactTokenOut.toString())
+                .div(y.sub(amount.toString()))
+                .toString();
 
             return bnum(spotPrice);
 

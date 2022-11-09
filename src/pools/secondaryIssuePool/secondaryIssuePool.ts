@@ -1,7 +1,10 @@
+// TS_NODE_PROJECT='tsconfig.testing.json' npx mocha -r ts-node/register test/poolsSecondary.spec.ts
 import { getAddress } from '@ethersproject/address';
 import { BigNumber, formatFixed, parseFixed } from '@ethersproject/bignumber';
 import { WeiPerEther as ONE } from '@ethersproject/constants';
 import { ethers } from 'ethers';
+import Big from 'big.js';
+
 import {
     BigNumber as OldBigNumber,
     bnum,
@@ -133,10 +136,10 @@ export class SecondaryIssuePool implements PoolBase {
         const allBalances = this.tokens.map(({ balance }) => bnum(balance));
         const allBalancesScaled = this.tokens.map(({ balance }) =>
             parseFixed(balance, 18)
-        );        
+        );
 
         if (isSameAddress(tokenIn, this.currency)) { 
-            pairType = PairTypes.CashTokenToSecurityToken            
+            pairType = PairTypes.CashTokenToSecurityToken
         } else {
             pairType = PairTypes.SecurityTokenToCashToken
         }
@@ -168,7 +171,7 @@ export class SecondaryIssuePool implements PoolBase {
     }
 
     getNormalizedLiquidity(
-        poolPairData: SecondaryIssuePoolPairData
+        _poolPairData: SecondaryIssuePoolPairData
     ): OldBigNumber {
         // This is an approximation as the actual normalized liquidity is a lot more complicated to calculate
         return bnum(0);
@@ -214,18 +217,27 @@ export class SecondaryIssuePool implements PoolBase {
         try {
             if (amount.isZero()) return ZERO;
 
-            const isCashToken = poolPairData.pairType === PairTypes.CashTokenToSecurityToken
+            const isCashToken =
+                poolPairData.pairType === PairTypes.CashTokenToSecurityToken;
 
-            let tokensOut: BigNumber;
-            
+            let tokensOut: Big;
+
+            const tokenIn = new Big(poolPairData.balanceIn);
+            const bestOffer = new Big(poolPairData.bestOffer);
+            const bestBid = new Big(poolPairData.bestBid);
+
             if (isCashToken) {
-                //cash is sent in for purchase of security. 
+                //cash is sent in for purchase of security.
                 //This function calculates security token sent out for best (lowest) offer price.
-                tokensOut = poolPairData.balanceIn.div(poolPairData.bestOffer)
+                tokensOut = tokenIn.div(bestOffer);
             } else {
-                //security is sent in for sale against cash. 
+                //security is sent in for sale against cash.
                 //This function calculates cash token sent out for best (highest) bid price.
-                tokensOut = poolPairData.balanceIn.mul(poolPairData.bestBid)
+                const product = tokenIn.mul(bestBid);
+                // scaling down decimals of tokenIn[dynamic] & bestBid [18];
+                tokensOut = product.div(
+                    scale(bnum('10'), poolPairData.decimalsIn + 18)
+                );
             }
 
             return bnum(tokensOut.toString());
@@ -242,18 +254,27 @@ export class SecondaryIssuePool implements PoolBase {
         try {
             if (amount.isZero()) return ZERO;
 
-            const isCashToken = poolPairData.pairType === PairTypes.CashTokenToSecurityToken
+            const isCashToken =
+                poolPairData.pairType === PairTypes.CashTokenToSecurityToken;
 
-            let tokensIn: BigNumber;
-            
+            let tokensIn: Big;
+
+            const tokenOut = new Big(poolPairData.balanceOut);
+            const bestOffer = new Big(poolPairData.bestOffer);
+            const bestBid = new Big(poolPairData.bestBid);
+
             if (isCashToken) {
-                //cash is sent out after sale of security. 
+                //cash is sent out after sale of security.
                 //This function calculates security token to be sent in for best (highest) bid price.
-                tokensIn = poolPairData.balanceOut.div(poolPairData.bestBid)
+                tokensIn = tokenOut.div(bestBid);
             } else {
-                //security is sent out after purchase with cash. 
+                //security is sent out after purchase with cash.
                 //This function calculates cash token to be sent in for best (lowest) offer price.
-                tokensIn = poolPairData.balanceOut.mul(poolPairData.bestOffer)
+                const product = tokenOut.mul(bestOffer);
+                // scaling down decimals of tokenOut & bestOffer;
+                tokensIn = product.div(
+                    scale(bnum('10'), poolPairData.decimalsOut + 18)
+                );
             }
 
             return bnum(tokensIn.toString());
@@ -268,7 +289,8 @@ export class SecondaryIssuePool implements PoolBase {
         amount: OldBigNumber
     ): OldBigNumber {
         try {
-            const isCashToken = poolPairData.pairType === PairTypes.CashTokenToSecurityToken
+            const isCashToken =
+                poolPairData.pairType === PairTypes.CashTokenToSecurityToken;
 
             const cashTokens = poolPairData.balanceIn;
             const securityTokens = poolPairData.balanceOut;
@@ -291,8 +313,10 @@ export class SecondaryIssuePool implements PoolBase {
             // z  - _exactTokenInForTokenOut
             // p  - spot price
 
-            const spotPrice =
-                x.add(amount.toString()).div(y.sub(this._exactTokenInForTokenOut.toString())).toString();
+            const spotPrice = x
+                .add(amount.toString())
+                .div(y.sub(this._exactTokenInForTokenOut.toString()))
+                .toString();
 
             return bnum(spotPrice);
 
@@ -307,7 +331,8 @@ export class SecondaryIssuePool implements PoolBase {
         amount: OldBigNumber
     ): OldBigNumber {
         try {
-            const isCashToken = poolPairData.pairType === PairTypes.CashTokenToSecurityToken
+            const isCashToken =
+                poolPairData.pairType === PairTypes.CashTokenToSecurityToken;
 
             const cashTokens = poolPairData.balanceIn;
             const securityTokens = poolPairData.balanceOut;
@@ -321,7 +346,7 @@ export class SecondaryIssuePool implements PoolBase {
                 x = securityTokens;
                 y = cashTokens;
             }
-            
+
             // p = (x + z)/(y - y')
             // where,
             // z - tokens coming in (_tokenInForExactTokenOut)
@@ -330,9 +355,11 @@ export class SecondaryIssuePool implements PoolBase {
             // y'  - total amount of tokens going out
             // p  - spot price
 
-            const spotPrice =
-                x.add(this._tokenInForExactTokenOut.toString()).div(y.sub(amount.toString())).toString();
-            
+            const spotPrice = x
+                .add(this._tokenInForExactTokenOut.toString())
+                .div(y.sub(amount.toString()))
+                .toString();
+
             return bnum(spotPrice.toString());
 
         } catch (err) {
