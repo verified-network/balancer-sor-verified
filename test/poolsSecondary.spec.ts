@@ -67,7 +67,6 @@ describe('Secondary pool tests', () => {
             it('DAI > Best Bid', async () => {
                 const tokenIn = DAI;
                 const tokenOut = aDAI;
-                const amountIn = scale(bnum('20'), 18);
                 const poolSG = cloneDeep(testPools);
                 const pool = SecondaryIssuePool.fromPool(poolSG.pools[0]);
                 const poolPairData = pool.parsePoolPairData(
@@ -75,10 +74,7 @@ describe('Secondary pool tests', () => {
                     tokenOut.address
                 );
 
-                const amountOut = pool._exactTokenInForTokenOut(
-                    poolPairData,
-                    amountIn
-                );
+                const amountOut = pool._exactTokenInForTokenOut(poolPairData);
                 expect(amountOut.toString()).to.eq('15019.75461041763115360785');
             });
         });
@@ -86,17 +82,13 @@ describe('Secondary pool tests', () => {
             it('DAI > Best Bid', async () => {
                 const tokenIn = DAI;
                 const tokenOut = aDAI;
-                const amountOut = scale(bnum('20'), 18);
                 const poolSG = cloneDeep(testPools);
                 const pool = SecondaryIssuePool.fromPool(poolSG.pools[0]);
                 const poolPairData = pool.parsePoolPairData(
                     tokenIn.address,
                     tokenOut.address
                 );
-                const amountIn = pool._tokenInForExactTokenOut(
-                    poolPairData,
-                    amountOut
-                );
+                const amountIn = pool._tokenInForExactTokenOut(poolPairData);
                 expect(amountIn.toString()).to.eq('15019.75461041763115360785');
             });
         });

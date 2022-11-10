@@ -211,12 +211,9 @@ export class SecondaryIssuePool implements PoolBase {
     }
 
     _exactTokenInForTokenOut(
-        poolPairData: SecondaryIssuePoolPairData,
-        amount: OldBigNumber
+        poolPairData: SecondaryIssuePoolPairData
     ): OldBigNumber {
         try {
-            if (amount.isZero()) return ZERO;
-
             const isCashToken =
                 poolPairData.pairType === PairTypes.CashTokenToSecurityToken;
 
@@ -248,12 +245,9 @@ export class SecondaryIssuePool implements PoolBase {
     }
 
     _tokenInForExactTokenOut(
-        poolPairData: SecondaryIssuePoolPairData,
-        amount: OldBigNumber
+        poolPairData: SecondaryIssuePoolPairData
     ): OldBigNumber {
         try {
-            if (amount.isZero()) return ZERO;
-
             const isCashToken =
                 poolPairData.pairType === PairTypes.CashTokenToSecurityToken;
 
