@@ -106,8 +106,8 @@ export interface SubgraphPoolBase {
     currency?: string;
 
     // Only Primary pool
-    openingPrice?: string;
-    maxPrice?: string;
+    minimumOrderSize?: string;
+    minimumPrice?: string;
     securityOffered?: string;
     cutoffTime?: string;
 
