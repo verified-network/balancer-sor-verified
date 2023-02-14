@@ -51,14 +51,14 @@ describe('Primary pool tests', () => {
                 SwapTypes.SwapExactIn
             );
 
-            expect(amount.toString()).to.eq('450.037037036737037036');
+            expect(amount.toString()).to.eq('30');
 
             amount = pool.getLimitAmountSwap(
                 poolPairData,
                 SwapTypes.SwapExactOut
             );
 
-            expect(amount.toString()).to.eq('450.037037036737037036');
+            expect(amount.toString()).to.eq('2250000');
         });
     });
 
