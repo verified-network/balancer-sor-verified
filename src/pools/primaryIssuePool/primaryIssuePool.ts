@@ -424,31 +424,47 @@ export class PrimaryIssuePool implements PoolBase {
         poolPairData: PrimaryIssuePoolPairData,
         amount: OldBigNumber
     ): OldBigNumber {
-        const Bi = parseFloat(
-            formatFixed(poolPairData.balanceIn, poolPairData.decimalsIn)
+        const Bi = bnum(
+            poolPairData.allBalancesScaled[poolPairData.tokenIndexIn].toString()
         );
-        const Bo = parseFloat(
-            formatFixed(poolPairData.balanceOut, poolPairData.decimalsOut)
+        const Bo = bnum(
+            poolPairData.allBalancesScaled[
+                poolPairData.tokenIndexOut
+            ].toString()
         );
-        const Ai = amount.toNumber();
-        const f = parseFloat(formatFixed(poolPairData.swapFee, 18));
-        return bnum( 2 / (Bo * (Bi / (Ai + Bi - Ai * f))));
+
+        const Ai = amount;
+        const f = formatFixed(poolPairData.swapFee, 18);
+        // Formula : bnum( 2 / (Bo * (Bi / (Ai + Bi - Ai * f))))
+        const denominator1 = Ai.plus(Bi).minus(Ai.multipliedBy(f));
+        const denominator2 = Bo.multipliedBy(Bi.dividedBy(denominator1));
+        console.log(bnum(2).pow(2));
+        return bnum(2).dividedBy(denominator2);
     }
 
     _derivativeSpotPriceAfterSwapTokenInForExactTokenOut(
         poolPairData: PrimaryIssuePoolPairData,
         amount: OldBigNumber
     ): OldBigNumber {
-        const Bi = parseFloat(
-            formatFixed(poolPairData.balanceIn, poolPairData.decimalsIn)
+        const Bi = bnum(
+            poolPairData.allBalancesScaled[poolPairData.tokenIndexIn].toString()
         );
-        const Bo = parseFloat(
-            formatFixed(poolPairData.balanceOut, poolPairData.decimalsOut)
+        const Bo = bnum(
+            poolPairData.allBalancesScaled[
+                poolPairData.tokenIndexOut
+            ].toString()
         );
-        const Ao = amount.toNumber();
-        const f = parseFloat(formatFixed(poolPairData.swapFee, 18));
-        return bnum(
-            -((Bi * (Bo / (-Ao + Bo)) * 2) / ((Ao - Bo) ** 2 * (-1 + f) ** 2))
+
+        const Ao = amount;
+        const f = bnum(formatFixed(poolPairData.swapFee, 18));
+        // Formula: -((Bi * (Bo / (-Ao + Bo)) * 2) / ((Ao - Bo) ** 2 * (-1 + f) ** 2))
+        const numerator = bnum(
+            Bi.multipliedBy(Bo.dividedBy(Bo.minus(Ao))).multipliedBy(bnum(2))
         );
+        const denominator = bnum(Ao.minus(Bo)
+            .pow(bnum(2))
+                .multipliedBy(f.minus(bnum(1)).pow(bnum(2)))
+        );
+        return bnum(-numerator.dividedBy(denominator));
     }
 }
