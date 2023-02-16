@@ -1,7 +1,7 @@
 // TS_NODE_PROJECT='tsconfig.testing.json' npx mocha -r ts-node/register test/poolsSecondary.spec.ts
 import { getAddress } from '@ethersproject/address';
 import { BigNumber, formatFixed, parseFixed } from '@ethersproject/bignumber';
-import { WeiPerEther as ONE } from '@ethersproject/constants';
+import { One, WeiPerEther as ONE } from '@ethersproject/constants';
 import { ethers } from 'ethers';
 import Big from 'big.js';
 
@@ -19,6 +19,7 @@ import {
     SwapTypes,
     SubgraphPoolBase,
     SubgraphToken,
+    SecondaryTrades,
 } from '../../types';
 
 export enum PairTypes {
@@ -37,12 +38,9 @@ export type SecondaryIssuePoolPairData = PoolPairBase & {
     allBalancesScaled: BigNumber[]; // EVM Maths uses everything in 1e18 upscaled format and this avoids repeated scaling
     tokenIndexIn: number;
     tokenIndexOut: number;
-
     security: string;
     currency: string;
-    secondaryOffer: string;
-    bestBid: BigNumber;
-    bestOffer: BigNumber;
+    orders: SecondaryTrades[];
 };
 
 export class SecondaryIssuePool implements PoolBase {
@@ -55,9 +53,7 @@ export class SecondaryIssuePool implements PoolBase {
     tokensList: string[];
     security: string;
     currency: string;
-    secondaryOffer: string;
-    bestBid: BigNumber;
-    bestOffer: BigNumber;
+    orders: SecondaryTrades[];
 
     MAX_IN_RATIO = parseFixed('0.3', 18);
     MAX_OUT_RATIO = parseFixed('0.3', 18);
@@ -67,8 +63,6 @@ export class SecondaryIssuePool implements PoolBase {
             throw new Error('SecondaryIssuePool missing "security"');
         if (pool.currency === undefined)
             throw new Error('SecondaryIssuePool missing "currency"');
-        if (!pool.secondaryOffer)
-            throw new Error('SecondaryIssuePool missing "secondaryOffer"');
 
         return new SecondaryIssuePool(
             pool.id,
@@ -79,9 +73,7 @@ export class SecondaryIssuePool implements PoolBase {
             pool.tokensList,
             pool.security,
             pool.currency,
-            pool.secondaryOffer,
-            ethers.utils.parseUnits(pool.bestUnfilledBid!),
-            ethers.utils.parseUnits(pool.bestUnfilledOffer!)
+            pool.orders
         );
     }
 
@@ -94,9 +86,7 @@ export class SecondaryIssuePool implements PoolBase {
         tokensList: string[],
         security: string,
         currency: string,
-        secondaryOffer: string,
-        bestBid: BigNumber,
-        bestOffer: BigNumber
+        orders: SecondaryTrades[]
     ) {
         this.id = id;
         this.address = address;
@@ -106,9 +96,7 @@ export class SecondaryIssuePool implements PoolBase {
         this.tokensList = tokensList;
         this.security = security;
         this.currency = currency;
-        this.secondaryOffer = secondaryOffer;
-        this.bestBid = bestBid;
-        this.bestOffer = bestOffer;
+        this.orders = orders;
     }
 
     parsePoolPairData(
@@ -162,9 +150,7 @@ export class SecondaryIssuePool implements PoolBase {
             decimalsOut: Number(decimalsOut),
             security: this.security,
             currency: this.currency,
-            secondaryOffer: this.secondaryOffer,
-            bestBid: this.bestBid,
-            bestOffer: this.bestOffer
+            orders: this.orders,
         };
 
         return poolPairData;
@@ -211,32 +197,62 @@ export class SecondaryIssuePool implements PoolBase {
     }
 
     _exactTokenInForTokenOut(
-        poolPairData: SecondaryIssuePoolPairData
+        poolPairData: SecondaryIssuePoolPairData,
+        amount: OldBigNumber
     ): OldBigNumber {
         try {
+            if (amount.isZero()) return ZERO;
+
+            const tokenInBalance = new Big(
+                poolPairData.allBalancesScaled[poolPairData.tokenIndexIn]
+            );
+            const tokenOutBalance = new Big(
+                poolPairData.allBalancesScaled[poolPairData.tokenIndexOut]
+            );
             const isCashToken =
                 poolPairData.pairType === PairTypes.CashTokenToSecurityToken;
+            
+            let orderBookdepth: OldBigNumber;
+            let tokensOut = bnum(0);
+            const buyOrders = poolPairData.orders.filter((order) =>
+                isSameAddress(order.tokenOut.address, poolPairData.security)
+            );
+            orderBookdepth = bnum(
+                buyOrders
+                .map((order) => Number(order.amountOffered))
+                .reduce((partialSum, a) => partialSum + a, 0)
+            );
+            const orderdsDataScaled = poolPairData.orders.map((order) => {
+                return {
+                    tokenInAddress: order.tokenIn.address,
+                    tokenOutAddress: order.tokenOut.address,
+                    amountOffered: bnum(parseFixed(order.amountOffered, 18).toString()),
+                    priceOffered: bnum(parseFixed(order.priceOffered, 18).toString()),
+                };
+            });
+            console.log("orderdsDataScaled",orderdsDataScaled[0].amountOffered.toString());
 
-            let tokensOut: Big;
+            orderBookdepth = bnum(
+                parseFixed(orderBookdepth.toString(), 18).toString()
+            );
+            if (Number(amount) > Number(orderBookdepth)) return ZERO;
 
-            const tokenIn = new Big(poolPairData.balanceIn);
-            const bestOffer = new Big(poolPairData.bestOffer);
-            const bestBid = new Big(poolPairData.bestBid);
+            console.log('bf orderBookdepth', orderBookdepth.toString());
 
-            if (isCashToken) {
-                //cash is sent in for purchase of security.
-                //This function calculates security token sent out for best (lowest) offer price.
-                tokensOut = tokenIn.div(bestOffer);
-            } else {
-                //security is sent in for sale against cash.
-                //This function calculates cash token sent out for best (highest) bid price.
-                const product = tokenIn.mul(bestBid);
-                // scaling down decimals of tokenIn[dynamic] & bestBid [18];
-                tokensOut = product.div(
-                    scale(bnum('10'), poolPairData.decimalsIn + 18)
-                );
+            for(var i=0; i< orderdsDataScaled.length; i++){
+                if (Number(orderdsDataScaled[i].amountOffered) <= Number(amount)) {
+                    tokensOut = tokensOut.plus(
+                        bnum(orderdsDataScaled[i].amountOffered)
+                        .multipliedBy(orderdsDataScaled[i].priceOffered)
+                        .dividedBy(ONE.toString()))
+                } else {
+                    tokensOut = tokensOut.plus(
+                        amount.multipliedBy(orderdsDataScaled[i].priceOffered).dividedBy(ONE.toString())
+                    );
+                }
+                amount = amount.minus(orderdsDataScaled[i].amountOffered);
+                if (Number(amount) < 0) break;
             }
-
             return bnum(tokensOut.toString());
         } catch (err) {
             console.error(`_evmoutGivenIn: ${err.message}`);
@@ -245,26 +261,37 @@ export class SecondaryIssuePool implements PoolBase {
     }
 
     _tokenInForExactTokenOut(
-        poolPairData: SecondaryIssuePoolPairData
+        poolPairData: SecondaryIssuePoolPairData,
+        amount: OldBigNumber
     ): OldBigNumber {
         try {
+            if (amount.isZero()) return ZERO;
+
+            const tokenInBalance = new Big(
+                poolPairData.allBalancesScaled[poolPairData.tokenIndexIn]
+            );
+            const tokenOutBalance = new Big(
+                poolPairData.allBalancesScaled[poolPairData.tokenIndexOut]
+            );
             const isCashToken =
                 poolPairData.pairType === PairTypes.CashTokenToSecurityToken;
 
             let tokensIn: Big;
+            const selectedSellOrders = poolPairData.orders.filter(order => isSameAddress(order.tokenIn.address, poolPairData.security));
+            console.log("isCashToken",isCashToken, selectedSellOrders);
 
             const tokenOut = new Big(poolPairData.balanceOut);
-            const bestOffer = new Big(poolPairData.bestOffer);
-            const bestBid = new Big(poolPairData.bestBid);
+            // const bestOffer = new Big(poolPairData.bestOffer);
+            // const bestBid = new Big(poolPairData.bestBid);
 
             if (isCashToken) {
                 //cash is sent out after sale of security.
                 //This function calculates security token to be sent in for best (highest) bid price.
-                tokensIn = tokenOut.div(bestBid);
+                tokensIn = tokenOut.div(2);
             } else {
                 //security is sent out after purchase with cash.
                 //This function calculates cash token to be sent in for best (lowest) offer price.
-                const product = tokenOut.mul(bestOffer);
+                const product = tokenOut.mul(2);
                 // scaling down decimals of tokenOut & bestOffer;
                 tokensIn = product.div(
                     scale(bnum('10'), poolPairData.decimalsOut + 18)

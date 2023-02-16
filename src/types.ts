@@ -112,10 +112,16 @@ export interface SubgraphPoolBase {
     cutoffTime?: string;
 
     // Only Secondary pool
-    secondaryOffer?: string;
-    bestUnfilledBid?: string;
-    bestUnfilledOffer?: string;
+    orders: SecondaryTrades[];
 }
+
+export type SecondaryTrades = {
+    id: string;
+    tokenIn: SubgraphToken;
+    tokenOut: SubgraphToken;
+    amountOffered: string;
+    priceOffered: string;
+};
 
 export type SubgraphToken = {
     address: string;

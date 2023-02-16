@@ -8,7 +8,7 @@
             "tokens": [
                 {
                     "address": "0x6b175474e89094c44da98b954eedeac495271d0f",
-                    "balance": "1500.123456789123456789",
+                    "balance": "100",
                     "decimals": 18,
                     "id": "linear2id-0x6b175474e89094c44da98b954eedeac495271d0f",
                     "symbol": "DAI",
@@ -16,17 +16,17 @@
                     "weight": null
                 },
                 {
-                    "address": "0xfc1e690f61efd961294b3e1ce3313fbd8aa4f85d",
-                    "balance": "1500.123456789123456789",
-                    "decimals": 18,
-                    "id": "linear2id-0xfc1e690f61efd961294b3e1ce3313fbd8aa4f85d",
-                    "symbol": "aDAI",
+                    "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    "balance": "100",
+                    "decimals": 6,
+                    "id": "linear2id-0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    "symbol": "USDC",
                     "priceRate": "1.1",
                     "weight": null
                 },
                 {
                     "address": "0x0000000000000000000000000000000000000002",
-                    "balance": "5192296858532827.628530496329220095",
+                    "balance": "0",
                     "decimals": 18,
                     "id": "linear2id-0x0000000000000000000000000000000000000002",
                     "symbol": "bDAI",
@@ -36,17 +36,85 @@
             ],
             "tokensList": [
                 "0x6b175474e89094c44da98b954eedeac495271d0f",
-                "0xfc1e690f61efd961294b3e1ce3313fbd8aa4f85d",
+                "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
                 "0x0000000000000000000000000000000000000002"
             ],
             "totalShares": "2000.000000",
             "poolType": "AaveLinear",
             "address": "0x0000000000000000000000000000000000000002",
             "security": "0x6b175474e89094c44da98b954eedeac495271d0f",
-            "currency": "0xfc1e690f61efd961294b3e1ce3313fbd8aa4f85d",
-            "secondaryOffer": "string",
-            "bestUnfilledBid": "100.123456789123456789",
-            "bestUnfilledOffer": "100.123456789123456789"
+            "currency": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "orders": [
+                {
+                  "id": "0x0a5e630b5d3c4a743186d0f739cb2071c064542dde7aa7f17325c8a3a788de6f-0x3b9ab9036f1edf6b8333f3ff6d0565ae737102f3",
+                  "tokenIn": {
+                    "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    "balance": "100",
+                    "decimals": 6,
+                    "id": "linear2id-0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    "symbol": "USDC",
+                    "priceRate": "1.1",
+                    "weight": null
+                  },
+                  "tokenOut": {
+                    "address": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+                    "balance": "100",
+                    "decimals": 18,
+                    "id": "linear2id-0x6b175474e89094c44da98b954eedeac495271d0f",
+                    "symbol": "DAI",
+                    "priceRate": "1",
+                    "weight": null
+                  },
+                  "amountOffered": "2",
+                  "priceOffered": "3"
+                },
+                {
+                  "id": "0x0a5e630b5d3c4a743186d0f739cb2071c064542dde7aa7f17325c8a3a788de6f-0x3b9ab9036f1edf6b8333f3ff6d0565ae737102f3",
+                  "tokenIn": {
+                    "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    "balance": "100",
+                    "decimals": 6,
+                    "id": "linear2id-0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    "symbol": "USDC",
+                    "priceRate": "1.1",
+                    "weight": null
+                  },
+                  "tokenOut": {
+                    "address": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+                    "balance": "100",
+                    "decimals": 18,
+                    "id": "linear2id-0x6b175474e89094c44da98b954eedeac495271d0f",
+                    "symbol": "DAI",
+                    "priceRate": "1",
+                    "weight": null
+                  },
+                  "amountOffered": "3",
+                  "priceOffered": "2"
+                },
+                {
+                    "id": "0x0a5e630b5d3c4a743186d0f739cb2071c064542dde7aa7f17325c8a3a788de6f-0x3b9ab9036f1edf6b8333f3ff6d0565ae737102f3",
+                    "tokenIn": {
+                      "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                      "balance": "100",
+                      "decimals": 6,
+                      "id": "linear2id-0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                      "symbol": "USDC",
+                      "priceRate": "1.1",
+                      "weight": null
+                    },
+                    "tokenOut": {
+                      "address": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+                      "balance": "100",
+                      "decimals": 18,
+                      "id": "linear2id-0x6b175474e89094c44da98b954eedeac495271d0f",
+                      "symbol": "DAI",
+                      "priceRate": "1",
+                      "weight": null
+                    },
+                    "amountOffered": "4",
+                    "priceOffered": "3"
+                }
+            ]
         }
     ]
 }

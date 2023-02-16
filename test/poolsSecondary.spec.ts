@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import cloneDeep from 'lodash.clonedeep';
 import { parseFixed, formatFixed } from '@ethersproject/bignumber';
 import { bnum, scale } from '../src/utils/bignumber';
-import { DAI, aDAI } from './lib/constants';
+import { DAI, USDC } from './lib/constants';
 import { WeiPerEther as ONE } from '@ethersproject/constants';
 import { SwapTypes } from '../src';
 import Big from 'big.js';
@@ -17,7 +17,7 @@ describe('Secondary pool tests', () => {
         it(`should correctly parse token > token`, async () => {
             // It's useful to use tokens with <18 decimals for some tests to make sure scaling is ok
             const tokenIn = DAI;
-            const tokenOut = aDAI;
+            const tokenOut = USDC;
             const poolSG = cloneDeep(testPools).pools[0];
             const pool = SecondaryIssuePool.fromPool(poolSG);
             const poolPairData = pool.parsePoolPairData(
@@ -38,7 +38,7 @@ describe('Secondary pool tests', () => {
         it(`getLimitAmountSwap, token to token`, async () => {
             // Test limit amounts against expected values
             const tokenIn = DAI;
-            const tokenOut = aDAI;
+            const tokenOut = USDC;
             const poolSG = cloneDeep(testPools);
             const pool = SecondaryIssuePool.fromPool(poolSG.pools[0]);
             const poolPairData = pool.parsePoolPairData(
@@ -51,22 +51,23 @@ describe('Secondary pool tests', () => {
                 SwapTypes.SwapExactIn
             );
 
-            expect(amount.toString()).to.eq('450.037037036737037036');
+            expect(amount.toString()).to.eq('30');
 
             amount = pool.getLimitAmountSwap(
                 poolPairData,
                 SwapTypes.SwapExactOut
             );
 
-            expect(amount.toString()).to.eq('450.037037036737037036');
+            expect(amount.toString()).to.eq('30');
         });
     });
 
     context('Test Swaps', () => {
         context('_exactTokenInForTokenOut', () => {
-            it('DAI > Best Bid', async () => {
+            it('Exact Security In > Currency Out', async () => {
                 const tokenIn = DAI;
-                const tokenOut = aDAI;
+                const tokenOut = USDC;
+                const amountIn = scale(bnum('5'), tokenIn.decimals);
                 const poolSG = cloneDeep(testPools);
                 const pool = SecondaryIssuePool.fromPool(poolSG.pools[0]);
                 const poolPairData = pool.parsePoolPairData(
@@ -74,21 +75,28 @@ describe('Secondary pool tests', () => {
                     tokenOut.address
                 );
 
-                const amountOut = pool._exactTokenInForTokenOut(poolPairData);
+                const amountOut = pool._exactTokenInForTokenOut(
+                    poolPairData,
+                    amountIn
+                );
                 expect(amountOut.toString()).to.eq('15019.75461041763115360785');
             });
         });
         context('_tokenInForExactTokenOut', () => {
-            it('DAI > Best Bid', async () => {
-                const tokenIn = DAI;
-                const tokenOut = aDAI;
+            it('Exact Security Out > Currency In', async () => {
+                const tokenIn = USDC;
+                const tokenOut = DAI;
+                const amountOut = scale(bnum('5'), tokenOut.decimals);
                 const poolSG = cloneDeep(testPools);
                 const pool = SecondaryIssuePool.fromPool(poolSG.pools[0]);
                 const poolPairData = pool.parsePoolPairData(
                     tokenIn.address,
                     tokenOut.address
                 );
-                const amountIn = pool._tokenInForExactTokenOut(poolPairData);
+                const amountIn = pool._tokenInForExactTokenOut(
+                    poolPairData,
+                    amountOut
+                );
                 expect(amountIn.toString()).to.eq('15019.75461041763115360785');
             });
         });
