@@ -79,7 +79,7 @@ describe('Secondary pool tests', () => {
                     poolPairData,
                     amountIn
                 );
-                expect(amountOut.toString()).to.eq('15019.75461041763115360785');
+                expect(amountOut.toString()).to.eq('15.36');
             });
         });
         context('_tokenInForExactTokenOut', () => {
@@ -97,7 +97,7 @@ describe('Secondary pool tests', () => {
                     poolPairData,
                     amountOut
                 );
-                expect(amountIn.toString()).to.eq('15019.75461041763115360785');
+                expect(amountIn.toString()).to.eq('13.75');
             });
         });
     });

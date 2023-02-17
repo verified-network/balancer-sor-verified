@@ -132,11 +132,6 @@ describe('Primary pool tests', () => {
                     poolPairData,
                     amountOut
                 );
-                const amountOut1 = pool._derivativeSpotPriceAfterSwapTokenInForExactTokenOut(
-                    poolPairData,
-                    amountOut
-                );
-                console.log("amountOut1", amountOut1.toString(), amountIn.toString() );
                 expect(amountIn.toString()).to.eq('33.500223');
             });
         });

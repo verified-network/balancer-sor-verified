@@ -66,7 +66,7 @@
                     "weight": null
                   },
                   "amountOffered": "2",
-                  "priceOffered": "3"
+                  "priceOffered": "3.87"
                 },
                 {
                   "id": "0x0a5e630b5d3c4a743186d0f739cb2071c064542dde7aa7f17325c8a3a788de6f-0x3b9ab9036f1edf6b8333f3ff6d0565ae737102f3",
@@ -89,7 +89,7 @@
                     "weight": null
                   },
                   "amountOffered": "3",
-                  "priceOffered": "2"
+                  "priceOffered": "2.54"
                 },
                 {
                     "id": "0x0a5e630b5d3c4a743186d0f739cb2071c064542dde7aa7f17325c8a3a788de6f-0x3b9ab9036f1edf6b8333f3ff6d0565ae737102f3",
@@ -113,7 +113,31 @@
                     },
                     "amountOffered": "4",
                     "priceOffered": "3"
-                }
+                },
+                {
+                  "id": "0x0a5e630b5d3c4a743186d0f739cb2071c064542dde7aa7f17325c8a3a788de6f-0x3b9ab9036f1edf6b8333f3ff6d0565ae737102f3",
+                  "tokenIn": {
+                    "address": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+                    "balance": "100",
+                    "decimals": 18,
+                    "id": "linear2id-0x6b175474e89094c44da98b954eedeac495271d0f",
+                    "symbol": "DAI",
+                    "priceRate": "1",
+                    "weight": null
+                  },
+                  "tokenOut": {
+                    "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    "balance": "100",
+                    "decimals": 6,
+                    "id": "linear2id-0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    "symbol": "USDC",
+                    "priceRate": "1.1",
+                    "weight": null
+                  },
+                  "amountOffered": "6",
+                  "priceOffered": "2.75"
+              }
+
             ]
         }
     ]

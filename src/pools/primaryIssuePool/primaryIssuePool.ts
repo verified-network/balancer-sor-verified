@@ -150,10 +150,10 @@ export class PrimaryIssuePool implements PoolBase {
         let currencyScalingFactor;
         if (isSameAddress(tokenIn, this.currency)) { 
             pairType = PairTypes.CashTokenToSecurityToken;
-            currencyScalingFactor = 18 - decimalsIn;
+            currencyScalingFactor = 10 ** (18 - decimalsIn);
         } else {
             pairType = PairTypes.SecurityTokenToCashToken;
-            currencyScalingFactor = 18 - decimalsOut;
+            currencyScalingFactor = 10 ** (18 - decimalsOut);
         }
 
         const poolPairData: PrimaryIssuePoolPairData = {
@@ -242,20 +242,21 @@ export class PrimaryIssuePool implements PoolBase {
             let tokensOut: OldBigNumber;
             if (isCashToken) {
                 //Swap Currency IN
-                const cashAmountFixed = parseFixed(amount.toString(), poolPairData.currencyScalingFactor);
-                const cashAmount = new OldBigNumber(cashAmountFixed.toString());
-                const numerator = cashAmount.dividedBy(poolPairData.minimumPrice.toString()).multipliedBy(ONE.toString());
+                const cashAmountFixed = amount.multipliedBy(poolPairData.currencyScalingFactor);
+                const numerator = cashAmountFixed.dividedBy(poolPairData.minimumPrice.toString()).multipliedBy(ONE.toString());
                 const denominator = tokenInBalance.add(cashAmountFixed).div(tokenInBalance).toString();
                 tokensOut = numerator.dividedBy(denominator);
-                if(Number(tokensOut) < Number(poolPairData.minimumOrderSize)) return ZERO;
+                if (Number(tokensOut) < Number(poolPairData.minimumOrderSize))
+                    return ZERO;
             } else {
                 //Swap Security IN
                 if (Number(tokenInBalance) < 0) return ZERO;
-                if(Number(amount) < Number(poolPairData.minimumOrderSize)) return ZERO;
-                const numerator = new OldBigNumber(tokenInBalance.add(amount).div(tokenInBalance).toString());
+                if (Number(amount) < Number(poolPairData.minimumOrderSize))
+                    return ZERO;
+                const numerator = bnum(tokenInBalance.add(amount).div(tokenInBalance).toString());
                 const denominator = amount.multipliedBy(poolPairData.minimumPrice.toString()).div(ONE.toString());
                 tokensOut = numerator.multipliedBy(denominator);
-                tokensOut = tokensOut.dividedBy(10**poolPairData.currencyScalingFactor);
+                tokensOut = tokensOut.dividedBy(poolPairData.currencyScalingFactor);
             }
             const scaleTokensOut = formatFixed(
                 BigNumber.from(
@@ -291,23 +292,38 @@ export class PrimaryIssuePool implements PoolBase {
             if (!isCashToken) {
                 //Swap Currency OUT
                 if (Number(tokenInBalance) < 0) return ZERO;
-                const cashAmountFixed = parseFixed(amount.toString(), poolPairData.currencyScalingFactor);
-                const cashAmount = new OldBigNumber(cashAmountFixed.toString());
+                const cashAmountFixed = amount.multipliedBy(
+                    poolPairData.currencyScalingFactor
+                );
+                const cashAmount = bnum(cashAmountFixed.toString());
                 if (Number(cashAmount) >= Number(tokenOutBalance)) return ZERO;
-                const numerator = cashAmount.dividedBy(poolPairData.minimumPrice.toString()).multipliedBy(ONE.toString());
-                const denominator = tokenOutBalance.div(tokenOutBalance.sub(cashAmountFixed)).toString();
+                const numerator = cashAmount
+                    .dividedBy(poolPairData.minimumPrice.toString())
+                    .multipliedBy(ONE.toString());
+                const denominator = tokenOutBalance
+                    .div(tokenOutBalance.sub(cashAmountFixed))
+                    .toString();
                 tokensIn = numerator.dividedBy(denominator);
-                if(Number(tokensIn) < Number(poolPairData.minimumOrderSize)) return ZERO;
+
+                if (Number(tokensIn) < Number(poolPairData.minimumOrderSize))
+                    return ZERO;
             } else {
                 //Swap Security OUT
                 if (Number(amount) >= Number(tokenOutBalance)) return ZERO;
-                if(Number(amount) < Number(poolPairData.minimumOrderSize)) return ZERO;
-                const numerator = new OldBigNumber(tokenOutBalance.div(tokenOutBalance.sub(amount)).toString());
-                const denominator = amount.multipliedBy(poolPairData.minimumPrice.toString()).div(ONE.toString());
+                if (Number(amount) < Number(poolPairData.minimumOrderSize))
+                    return ZERO;
+                const numerator = bnum(
+                    tokenOutBalance.div(tokenOutBalance.sub(amount)).toString()
+                );
+                const denominator = amount
+                    .multipliedBy(poolPairData.minimumPrice.toString())
+                    .div(ONE.toString());
                 tokensIn = numerator.multipliedBy(denominator);
-                tokensIn = tokensIn.dividedBy(10**poolPairData.currencyScalingFactor);
+                tokensIn = tokensIn.dividedBy(
+                    poolPairData.currencyScalingFactor
+                )
             }
-            
+
             const scaleTokensIn = formatFixed(
                 BigNumber.from(
                     Math.trunc(Number(tokensIn.toString())).toString()
@@ -344,7 +360,7 @@ export class PrimaryIssuePool implements PoolBase {
                     amount.toString(),
                     poolPairData.currencyScalingFactor
                 );
-                amount = new OldBigNumber(cashAmountFixed.toString());
+                amount = bnum(cashAmountFixed.toString());
             }
             let spotPrice: OldBigNumber;
             // sp = (x' + x)/(y - z)
@@ -354,7 +370,7 @@ export class PrimaryIssuePool implements PoolBase {
             // y  - total amount of tokens of the other type
             // z  - _exactTokenInForTokenOut
             // p  - spot price
-            const numerator = new OldBigNumber(tokenInBalance.plus(amount));
+            const numerator = bnum(tokenInBalance.plus(amount));
             const denominator = tokenOutBalance.sub(tokenOutCalculated);
             spotPrice = numerator.dividedBy(denominator);
             if (!isCashToken) {
@@ -362,7 +378,6 @@ export class PrimaryIssuePool implements PoolBase {
             }
 
             return bnum(spotPrice);
-
         } catch (err) {
             console.error(`_evmoutGivenIn: ${err.message}`);
             return ZERO;
@@ -386,14 +401,14 @@ export class PrimaryIssuePool implements PoolBase {
                 this._tokenInForExactTokenOut(poolPairData, amount).toString(),
                 18
             );
-            console.log(tokenInCalculated.toString());
+
             if (!isCashToken) {
                 //Swap Currency OUT
                 const cashAmountFixed = parseFixed(
                     amount.toString(),
                     poolPairData.currencyScalingFactor
                 );
-                amount = new OldBigNumber(cashAmountFixed.toString());
+                amount = bnum(cashAmountFixed.toString());
             }
             let spotPrice: OldBigNumber;
             // sp = (x + z)/(y - y')
@@ -403,7 +418,7 @@ export class PrimaryIssuePool implements PoolBase {
             // y  - total amount of tokens of the other type
             // y'  - total amount of tokens going out
             // p  - spot price
-            const numerator = new OldBigNumber(
+            const numerator = bnum(
                 tokenInBalance.plus(tokenInCalculated)
             );
             const denominator = tokenOutBalance.sub(amount);

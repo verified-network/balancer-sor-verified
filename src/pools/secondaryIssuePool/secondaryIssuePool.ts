@@ -32,15 +32,26 @@ type SecondaryIssuePoolToken = Pick<
     'address' | 'balance' | 'decimals'
 >;
 
+type SecondaryTradesScaled = Omit<
+    SecondaryTrades,
+    'id' | 'tokenIn' | 'tokenOut' | 'amountOffered' | 'priceOffered'
+> & {
+    tokenInAddress: string;
+    tokenOutAddress: string;
+    amountOffered: OldBigNumber;
+    priceOffered: OldBigNumber;
+};
+
 export type SecondaryIssuePoolPairData = PoolPairBase & {
     pairType: PairTypes;
     allBalances: OldBigNumber[];
     allBalancesScaled: BigNumber[]; // EVM Maths uses everything in 1e18 upscaled format and this avoids repeated scaling
     tokenIndexIn: number;
     tokenIndexOut: number;
+    currencyScalingFactor: number;
     security: string;
     currency: string;
-    orders: SecondaryTrades[];
+    ordersDataScaled: SecondaryTradesScaled[];
 };
 
 export class SecondaryIssuePool implements PoolBase {
@@ -73,7 +84,8 @@ export class SecondaryIssuePool implements PoolBase {
             pool.tokensList,
             pool.security,
             pool.currency,
-            pool.orders
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            pool.orders!
         );
     }
 
@@ -125,11 +137,26 @@ export class SecondaryIssuePool implements PoolBase {
         const allBalancesScaled = this.tokens.map(({ balance }) =>
             parseFixed(balance, 18)
         );
-
+        const ordersDataScaled = this.orders.map((order) => {
+            return {
+                tokenInAddress: order.tokenIn.address,
+                tokenOutAddress: order.tokenOut.address,
+                amountOffered: bnum(parseFixed(order.amountOffered, 18).toString()),
+                priceOffered: bnum(parseFixed(order.priceOffered, 18).toString()),
+            };
+        });
         if (isSameAddress(tokenIn, this.currency)) { 
-            pairType = PairTypes.CashTokenToSecurityToken
+            pairType = PairTypes.CashTokenToSecurityToken;
         } else {
-            pairType = PairTypes.SecurityTokenToCashToken
+            pairType = PairTypes.SecurityTokenToCashToken;
+        }
+        let currencyScalingFactor: number;
+        if (isSameAddress(tokenIn, this.currency)) {
+            pairType = PairTypes.CashTokenToSecurityToken;
+            currencyScalingFactor = 10 ** (18 - decimalsIn);
+        } else {
+            pairType = PairTypes.SecurityTokenToCashToken;
+            currencyScalingFactor = 10 ** (18 - decimalsOut);
         }
 
         const poolPairData: SecondaryIssuePoolPairData = {
@@ -146,11 +173,12 @@ export class SecondaryIssuePool implements PoolBase {
             allBalancesScaled, // TO DO - Change to BigInt??
             tokenIndexIn: tokenIndexIn,
             tokenIndexOut: tokenIndexOut,
+            currencyScalingFactor: currencyScalingFactor,
             decimalsIn: Number(decimalsIn),
             decimalsOut: Number(decimalsOut),
             security: this.security,
             currency: this.currency,
-            orders: this.orders,
+            ordersDataScaled: ordersDataScaled,
         };
 
         return poolPairData;
@@ -203,57 +231,35 @@ export class SecondaryIssuePool implements PoolBase {
         try {
             if (amount.isZero()) return ZERO;
 
-            const tokenInBalance = new Big(
-                poolPairData.allBalancesScaled[poolPairData.tokenIndexIn]
+            const buyOrders = poolPairData.ordersDataScaled.filter((order) =>
+                isSameAddress(order.tokenOutAddress, poolPairData.security)
             );
-            const tokenOutBalance = new Big(
-                poolPairData.allBalancesScaled[poolPairData.tokenIndexOut]
-            );
-            const isCashToken =
-                poolPairData.pairType === PairTypes.CashTokenToSecurityToken;
-            
-            let orderBookdepth: OldBigNumber;
-            let tokensOut = bnum(0);
-            const buyOrders = poolPairData.orders.filter((order) =>
-                isSameAddress(order.tokenOut.address, poolPairData.security)
-            );
-            orderBookdepth = bnum(
-                buyOrders
-                .map((order) => Number(order.amountOffered))
-                .reduce((partialSum, a) => partialSum + a, 0)
-            );
-            const orderdsDataScaled = poolPairData.orders.map((order) => {
-                return {
-                    tokenInAddress: order.tokenIn.address,
-                    tokenOutAddress: order.tokenOut.address,
-                    amountOffered: bnum(parseFixed(order.amountOffered, 18).toString()),
-                    priceOffered: bnum(parseFixed(order.priceOffered, 18).toString()),
-                };
-            });
-            console.log("orderdsDataScaled",orderdsDataScaled[0].amountOffered.toString());
 
-            orderBookdepth = bnum(
-                parseFixed(orderBookdepth.toString(), 18).toString()
+            const orderBookdepth = bnum(
+                buyOrders
+                    .map((order) => Number(order.amountOffered))
+                    .reduce(
+                        (partialSum, a) =>
+                            Number(bnum(partialSum).plus(bnum(a))),
+                        0
+                    )
             );
+
             if (Number(amount) > Number(orderBookdepth)) return ZERO;
 
-            console.log('bf orderBookdepth', orderBookdepth.toString());
+            const tokensOut = this.getTokenAmount(
+                amount,
+                buyOrders,
+                poolPairData.currencyScalingFactor
+            );
 
-            for(var i=0; i< orderdsDataScaled.length; i++){
-                if (Number(orderdsDataScaled[i].amountOffered) <= Number(amount)) {
-                    tokensOut = tokensOut.plus(
-                        bnum(orderdsDataScaled[i].amountOffered)
-                        .multipliedBy(orderdsDataScaled[i].priceOffered)
-                        .dividedBy(ONE.toString()))
-                } else {
-                    tokensOut = tokensOut.plus(
-                        amount.multipliedBy(orderdsDataScaled[i].priceOffered).dividedBy(ONE.toString())
-                    );
-                }
-                amount = amount.minus(orderdsDataScaled[i].amountOffered);
-                if (Number(amount) < 0) break;
-            }
-            return bnum(tokensOut.toString());
+            const scaleTokensOut = formatFixed(
+                BigNumber.from(
+                    Math.trunc(Number(tokensOut.toString())).toString()
+                ),
+                poolPairData.decimalsOut
+            );
+            return bnum(scaleTokensOut);
         } catch (err) {
             console.error(`_evmoutGivenIn: ${err.message}`);
             return ZERO;
@@ -267,38 +273,35 @@ export class SecondaryIssuePool implements PoolBase {
         try {
             if (amount.isZero()) return ZERO;
 
-            const tokenInBalance = new Big(
-                poolPairData.allBalancesScaled[poolPairData.tokenIndexIn]
+            const sellOrders = poolPairData.ordersDataScaled.filter((order) =>
+                isSameAddress(order.tokenInAddress, poolPairData.security)
             );
-            const tokenOutBalance = new Big(
-                poolPairData.allBalancesScaled[poolPairData.tokenIndexOut]
+
+            const orderBookdepth = bnum(
+                sellOrders
+                    .map((order) => Number(order.amountOffered))
+                    .reduce(
+                        (partialSum, a) =>
+                            Number(bnum(partialSum).plus(bnum(a))),
+                        0
+                    )
             );
-            const isCashToken =
-                poolPairData.pairType === PairTypes.CashTokenToSecurityToken;
 
-            let tokensIn: Big;
-            const selectedSellOrders = poolPairData.orders.filter(order => isSameAddress(order.tokenIn.address, poolPairData.security));
-            console.log("isCashToken",isCashToken, selectedSellOrders);
+            if (Number(amount) > Number(orderBookdepth)) return ZERO;
 
-            const tokenOut = new Big(poolPairData.balanceOut);
-            // const bestOffer = new Big(poolPairData.bestOffer);
-            // const bestBid = new Big(poolPairData.bestBid);
+            const tokensIn = this.getTokenAmount(
+                amount,
+                sellOrders,
+                poolPairData.currencyScalingFactor
+            );
 
-            if (isCashToken) {
-                //cash is sent out after sale of security.
-                //This function calculates security token to be sent in for best (highest) bid price.
-                tokensIn = tokenOut.div(2);
-            } else {
-                //security is sent out after purchase with cash.
-                //This function calculates cash token to be sent in for best (lowest) offer price.
-                const product = tokenOut.mul(2);
-                // scaling down decimals of tokenOut & bestOffer;
-                tokensIn = product.div(
-                    scale(bnum('10'), poolPairData.decimalsOut + 18)
-                );
-            }
-
-            return bnum(tokensIn.toString());
+            const scaleTokensOut = formatFixed(
+                BigNumber.from(
+                    Math.trunc(Number(tokensIn.toString())).toString()
+                ),
+                poolPairData.decimalsIn
+            );
+            return bnum(scaleTokensOut);
         } catch (err) {
             console.error(`_evminGivenOut: ${err.message}`);
             return ZERO;
@@ -310,37 +313,41 @@ export class SecondaryIssuePool implements PoolBase {
         amount: OldBigNumber
     ): OldBigNumber {
         try {
+            const tokenInBalance = new Big(
+                poolPairData.allBalancesScaled[poolPairData.tokenIndexIn]
+            );
+            const tokenOutBalance = new Big(
+                poolPairData.allBalancesScaled[poolPairData.tokenIndexOut]
+            );
             const isCashToken =
                 poolPairData.pairType === PairTypes.CashTokenToSecurityToken;
-
-            const cashTokens = poolPairData.balanceIn;
-            const securityTokens = poolPairData.balanceOut;
-
-            let x: BigNumber, y: BigNumber;
-
+            const tokenOutCalculated = parseFixed(
+                this._exactTokenInForTokenOut(poolPairData, amount).toString(),
+                18
+            );
             if (isCashToken) {
-                x = cashTokens;
-                y = securityTokens;
-            } else {
-                x = securityTokens;
-                y = cashTokens;
+                const cashAmountFixed = parseFixed(
+                    amount.toString(),
+                    poolPairData.currencyScalingFactor
+                );
+                amount = bnum(cashAmountFixed.toString());
             }
-
-            // p = (x' + x)/(y - z)
+            let spotPrice: OldBigNumber;
+            // sp = (x' + x)/(y - z)
             // where,
             // x' - tokens coming in
             // x  - total amount of tokens of the same type as the tokens coming in
             // y  - total amount of tokens of the other type
             // z  - _exactTokenInForTokenOut
             // p  - spot price
-
-            const spotPrice = x
-                .add(amount.toString())
-                .div(y.sub(this._exactTokenInForTokenOut.toString()))
-                .toString();
+            const numerator = bnum(tokenInBalance.plus(amount));
+            const denominator = tokenOutBalance.sub(tokenOutCalculated);
+            spotPrice = numerator.dividedBy(denominator);
+            if (!isCashToken) {
+                spotPrice = bnum(1).dividedBy(spotPrice);
+            }
 
             return bnum(spotPrice);
-
         } catch (err) {
             console.error(`_evmoutGivenIn: ${err.message}`);
             return ZERO;
@@ -352,37 +359,43 @@ export class SecondaryIssuePool implements PoolBase {
         amount: OldBigNumber
     ): OldBigNumber {
         try {
+            const tokenInBalance = new Big(
+                poolPairData.allBalancesScaled[poolPairData.tokenIndexIn]
+            );
+            const tokenOutBalance = new Big(
+                poolPairData.allBalancesScaled[poolPairData.tokenIndexOut]
+            );
             const isCashToken =
                 poolPairData.pairType === PairTypes.CashTokenToSecurityToken;
+            const tokenInCalculated = parseFixed(
+                this._tokenInForExactTokenOut(poolPairData, amount).toString(),
+                18
+            );
 
-            const cashTokens = poolPairData.balanceIn;
-            const securityTokens = poolPairData.balanceOut;
-
-            let x: BigNumber, y: BigNumber;
-
-            if (isCashToken) {
-                x = cashTokens;
-                y = securityTokens;
-            } else {
-                x = securityTokens;
-                y = cashTokens;
+            if (!isCashToken) {
+                //Swap Currency OUT
+                const cashAmountFixed = parseFixed(
+                    amount.toString(),
+                    poolPairData.currencyScalingFactor
+                );
+                amount = bnum(cashAmountFixed.toString());
             }
-
-            // p = (x + z)/(y - y')
+            let spotPrice: OldBigNumber;
+            // sp = (x + z)/(y - y')
             // where,
             // z - tokens coming in (_tokenInForExactTokenOut)
             // x  - total amount of tokens of the same type as the tokens coming in
             // y  - total amount of tokens of the other type
             // y'  - total amount of tokens going out
             // p  - spot price
+            const numerator = bnum(tokenInBalance.plus(tokenInCalculated));
+            const denominator = tokenOutBalance.sub(amount);
+            spotPrice = numerator.dividedBy(denominator);
+            if (!isCashToken) {
+                spotPrice = bnum(1).dividedBy(spotPrice);
+            }
 
-            const spotPrice = x
-                .add(this._tokenInForExactTokenOut.toString())
-                .div(y.sub(amount.toString()))
-                .toString();
-
-            return bnum(spotPrice.toString());
-
+            return bnum(spotPrice);
         } catch (err) {
             console.error(`_evmoutGivenIn: ${err.message}`);
             return ZERO;
@@ -402,5 +415,31 @@ export class SecondaryIssuePool implements PoolBase {
     ): OldBigNumber {
         return bnum(0);
     }
-    
+
+    getTokenAmount(
+        amount: OldBigNumber,
+        ordersDataScaled: SecondaryTradesScaled[],
+        scalingFactor: number
+    ): OldBigNumber {
+        let returnAmount = bnum(0);
+        for (let i = 0; i < ordersDataScaled.length; i++) {
+            if (Number(ordersDataScaled[i].amountOffered) <= Number(amount)) {
+                returnAmount = returnAmount.plus(
+                    bnum(ordersDataScaled[i].amountOffered)
+                    .multipliedBy(ordersDataScaled[i].priceOffered)
+                        .dividedBy(ONE.toString())
+                );
+            } else {
+                returnAmount = returnAmount.plus(
+                    amount
+                        .multipliedBy(ordersDataScaled[i].priceOffered)
+                        .dividedBy(ONE.toString())
+                );
+            }
+            amount = amount.minus(ordersDataScaled[i].amountOffered);
+            if (Number(amount) < 0) break;
+        }
+        returnAmount = returnAmount.dividedBy(scalingFactor);
+        return returnAmount;
+    }
 }
