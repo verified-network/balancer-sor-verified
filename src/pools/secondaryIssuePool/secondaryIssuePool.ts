@@ -4,6 +4,7 @@ import { BigNumber, formatFixed, parseFixed } from '@ethersproject/bignumber';
 import { One, WeiPerEther as ONE } from '@ethersproject/constants';
 import { ethers } from 'ethers';
 import Big from 'big.js';
+import { MathSol } from '../../utils/basicOperations';
 
 import {
     BigNumber as OldBigNumber,
@@ -421,25 +422,34 @@ export class SecondaryIssuePool implements PoolBase {
         ordersDataScaled: SecondaryTradesScaled[],
         scalingFactor: number
     ): OldBigNumber {
-        let returnAmount = bnum(0);
+        let returnAmount = BigInt(0);
         for (let i = 0; i < ordersDataScaled.length; i++) {
             if (Number(ordersDataScaled[i].amountOffered) <= Number(amount)) {
-                returnAmount = returnAmount.plus(
-                    bnum(ordersDataScaled[i].amountOffered)
-                    .multipliedBy(ordersDataScaled[i].priceOffered)
-                        .dividedBy(ONE.toString())
+                returnAmount = MathSol.add(
+                    returnAmount,
+                    MathSol.mulDownFixed(
+                        BigInt(Number(ordersDataScaled[i].amountOffered)),
+                        BigInt(Number(ordersDataScaled[i].priceOffered))
+                    )
                 );
             } else {
-                returnAmount = returnAmount.plus(
-                    amount
-                        .multipliedBy(ordersDataScaled[i].priceOffered)
-                        .dividedBy(ONE.toString())
+                returnAmount = MathSol.add(
+                    returnAmount,
+                    MathSol.mulDownFixed(
+                        BigInt(Number(amount)),
+                        BigInt(Number(ordersDataScaled[i].priceOffered))
+                    )
                 );
             }
-            amount = amount.minus(ordersDataScaled[i].amountOffered);
+            amount = bnum(
+                Number(amount) - Number(ordersDataScaled[i].amountOffered)
+            );
             if (Number(amount) < 0) break;
         }
-        returnAmount = returnAmount.dividedBy(scalingFactor);
-        return returnAmount;
+        returnAmount = MathSol.divDown(
+            returnAmount,
+            BigInt(Number(scalingFactor))
+        );
+        return bnum(Number(returnAmount));
     }
 }
