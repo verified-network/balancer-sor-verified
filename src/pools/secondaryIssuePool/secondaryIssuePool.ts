@@ -20,6 +20,7 @@ import {
     SwapTypes,
     SubgraphPoolBase,
     SubgraphToken,
+    Orders,
     SecondaryTrades,
 } from '../../types';
 
@@ -33,14 +34,27 @@ type SecondaryIssuePoolToken = Pick<
     'address' | 'balance' | 'decimals'
 >;
 
-type SecondaryTradesScaled = Omit<
-    SecondaryTrades,
-    'id' | 'tokenIn' | 'tokenOut' | 'amountOffered' | 'priceOffered'
+type OrdersScaled = Omit<
+    Orders,
+    | 'id'
+    | 'tokenIn'
+    | 'tokenOut'
+    | 'amountOffered'
+    | 'priceOffered'
+    | 'orderReference'
 > & {
     tokenInAddress: string;
     tokenOutAddress: string;
+    orderReference: string;
     amountOffered: OldBigNumber;
     priceOffered: OldBigNumber;
+};
+
+type SecondaryTradesScaled = Omit<
+    SecondaryTrades,
+    'id' | 'amountOffered' | 'priceOffered' | 'orderReference'
+> & {
+    orderReference: string;
 };
 
 export type SecondaryIssuePoolPairData = PoolPairBase & {
@@ -52,7 +66,8 @@ export type SecondaryIssuePoolPairData = PoolPairBase & {
     currencyScalingFactor: number;
     security: string;
     currency: string;
-    ordersDataScaled: SecondaryTradesScaled[];
+    ordersDataScaled: OrdersScaled[];
+    secondaryTradesScaled: SecondaryTradesScaled[];
 };
 
 export class SecondaryIssuePool implements PoolBase {
@@ -65,7 +80,8 @@ export class SecondaryIssuePool implements PoolBase {
     tokensList: string[];
     security: string;
     currency: string;
-    orders: SecondaryTrades[];
+    orders: Orders[];
+    secondaryTrades: SecondaryTrades[];
 
     MAX_IN_RATIO = parseFixed('0.3', 18);
     MAX_OUT_RATIO = parseFixed('0.3', 18);
@@ -86,7 +102,8 @@ export class SecondaryIssuePool implements PoolBase {
             pool.security,
             pool.currency,
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            pool.orders!
+            pool.orders!,
+            pool.secondaryTrades!
         );
     }
 
@@ -99,7 +116,8 @@ export class SecondaryIssuePool implements PoolBase {
         tokensList: string[],
         security: string,
         currency: string,
-        orders: SecondaryTrades[]
+        orders: Orders[],
+        secondaryTrades: SecondaryTrades[]
     ) {
         this.id = id;
         this.address = address;
@@ -110,6 +128,7 @@ export class SecondaryIssuePool implements PoolBase {
         this.security = security;
         this.currency = currency;
         this.orders = orders;
+        this.secondaryTrades = secondaryTrades;
     }
 
     parsePoolPairData(
@@ -142,8 +161,14 @@ export class SecondaryIssuePool implements PoolBase {
             return {
                 tokenInAddress: order.tokenIn.address,
                 tokenOutAddress: order.tokenOut.address,
+                orderReference: order.orderReference,
                 amountOffered: bnum(parseFixed(order.amountOffered, 18).toString()),
                 priceOffered: bnum(parseFixed(order.priceOffered, 18).toString()),
+            };
+        });
+        const secondaryTradesScaled = this.secondaryTrades.map((order) => {
+            return {
+                orderReference: order.orderReference,
             };
         });
         if (isSameAddress(tokenIn, this.currency)) { 
@@ -180,6 +205,7 @@ export class SecondaryIssuePool implements PoolBase {
             security: this.security,
             currency: this.currency,
             ordersDataScaled: ordersDataScaled,
+            secondaryTradesScaled: secondaryTradesScaled
         };
 
         return poolPairData;
@@ -233,7 +259,14 @@ export class SecondaryIssuePool implements PoolBase {
             if (amount.isZero()) return ZERO;
 
             const buyOrders = poolPairData.ordersDataScaled.filter((order) =>
-                isSameAddress(order.tokenOutAddress, poolPairData.security)
+                    isSameAddress(
+                        order.tokenOutAddress,
+                        poolPairData.security
+                    ) &&
+                    poolPairData.secondaryTradesScaled.some(
+                        (trades) =>
+                            trades.orderReference !== order.orderReference
+                    )
             );
 
             const orderBookdepth = bnum(
@@ -275,7 +308,14 @@ export class SecondaryIssuePool implements PoolBase {
             if (amount.isZero()) return ZERO;
 
             const sellOrders = poolPairData.ordersDataScaled.filter((order) =>
-                isSameAddress(order.tokenInAddress, poolPairData.security)
+                    isSameAddress(
+                        order.tokenInAddress,
+                        poolPairData.security
+                    ) &&
+                    poolPairData.secondaryTradesScaled.some(
+                    (trades) =>
+                        trades.orderReference !== order.orderReference
+                )
             );
 
             const orderBookdepth = bnum(
@@ -419,7 +459,7 @@ export class SecondaryIssuePool implements PoolBase {
 
     getTokenAmount(
         amount: OldBigNumber,
-        ordersDataScaled: SecondaryTradesScaled[],
+        ordersDataScaled: OrdersScaled[],
         scalingFactor: number
     ): OldBigNumber {
         let returnAmount = BigInt(0);

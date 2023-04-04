@@ -25,10 +25,10 @@
                     "weight": null
                 },
                 {
-                    "address": "0x0000000000000000000000000000000000000002",
+                    "address": "0x9eae504fbb5ac016a60c51d3b9c9e71a9cc5a468",
                     "balance": "0",
                     "decimals": 18,
-                    "id": "linear2id-0x0000000000000000000000000000000000000002",
+                    "id": "linear2id-0x9eae504fbb5ac016a60c51d3b9c9e71a9cc5a468",
                     "symbol": "bDAI",
                     "priceRate": "1",
                     "weight": null
@@ -37,13 +37,21 @@
             "tokensList": [
                 "0x6b175474e89094c44da98b954eedeac495271d0f",
                 "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-                "0x0000000000000000000000000000000000000002"
+                "0x9eae504fbb5ac016a60c51d3b9c9e71a9cc5a468"
             ],
             "totalShares": "2000.000000",
             "poolType": "AaveLinear",
-            "address": "0x0000000000000000000000000000000000000002",
+            "address": "0x9eae504fbb5ac016a60c51d3b9c9e71a9cc5a468",
             "security": "0x6b175474e89094c44da98b954eedeac495271d0f",
             "currency": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "secondaryTrades": [
+              {
+                "id": "0x0fb769a851900a08538447e79727d9d2a0fe50cadaa222fb33a61d2da49dd135-0x20cd75c840b38dd250514ec478206c90f960ea34",
+                "orderReference": "0x26240f5cc982d84e581a425d696414d4d1239b777cd9032b003c950dd6b73394",
+                "priceOffered": "5",
+                "amountOffered": "9"
+              }
+            ],
             "orders": [
                 {
                   "id": "0x0a5e630b5d3c4a743186d0f739cb2071c064542dde7aa7f17325c8a3a788de6f-0x3b9ab9036f1edf6b8333f3ff6d0565ae737102f3",
@@ -66,7 +74,8 @@
                     "weight": null
                   },
                   "amountOffered": "2",
-                  "priceOffered": "3.87"
+                  "priceOffered": "3.87",
+                  "orderReference": "0x26240f5cc982d84e581a425d696414d4d1239b777cd9032b003c950dd6b73394"
                 },
                 {
                   "id": "0x0a5e630b5d3c4a743186d0f739cb2071c064542dde7aa7f17325c8a3a788de6f-0x3b9ab9036f1edf6b8333f3ff6d0565ae737102f3",
@@ -89,7 +98,8 @@
                     "weight": null
                   },
                   "amountOffered": "3",
-                  "priceOffered": "2.54"
+                  "priceOffered": "2.54",
+                  "orderReference": "0x26240f5cc982d84e581a425d696414d4d1239b777cd9032b003c950dd6b83394"
                 },
                 {
                     "id": "0x0a5e630b5d3c4a743186d0f739cb2071c064542dde7aa7f17325c8a3a788de6f-0x3b9ab9036f1edf6b8333f3ff6d0565ae737102f3",
@@ -112,7 +122,8 @@
                       "weight": null
                     },
                     "amountOffered": "4",
-                    "priceOffered": "3"
+                    "priceOffered": "3",
+                    "orderReference": "0x26235f5cc982d84e581a425d696414d4d1239b777cd9032b003c950dd6b83394"
                 },
                 {
                   "id": "0x0a5e630b5d3c4a743186d0f739cb2071c064542dde7aa7f17325c8a3a788de6f-0x3b9ab9036f1edf6b8333f3ff6d0565ae737102f3",
@@ -135,9 +146,9 @@
                     "weight": null
                   },
                   "amountOffered": "6",
-                  "priceOffered": "2.75"
+                  "priceOffered": "2.75",
+                  "orderReference": "0x26240f5cc982d84e581a425d69641004d1239b777cd9032b003c950dd6b83394"
               }
-
             ]
         }
     ]
