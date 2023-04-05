@@ -157,6 +157,7 @@ export class SecondaryIssuePool implements PoolBase {
         const allBalancesScaled = this.tokens.map(({ balance }) =>
             parseFixed(balance, 18)
         );
+        
         const ordersDataScaled = this.orders.map((order) => {
             return {
                 tokenInAddress: order.tokenIn.address,
@@ -258,7 +259,7 @@ export class SecondaryIssuePool implements PoolBase {
         try {
             if (amount.isZero()) return ZERO;
 
-            const buyOrders = poolPairData.ordersDataScaled.filter((order) =>
+            let buyOrders = poolPairData.ordersDataScaled.filter((order) =>
                     isSameAddress(
                         order.tokenOutAddress,
                         poolPairData.security
@@ -268,10 +269,24 @@ export class SecondaryIssuePool implements PoolBase {
                             trades.orderReference !== order.orderReference
                     )
             );
+            buyOrders = buyOrders.sort(
+                (a, b) => b.priceOffered.toNumber() - a.priceOffered.toNumber()
+            );
+            console.log(
+                buyOrders.map((obj) => ({
+                    ...obj,
+                    priceOffered: obj.priceOffered.toString(),
+                    amountOffered: obj.amountOffered.toString()
+                }))
+            );
 
-            const orderBookdepth = bnum(
+            let orderBookdepth = bnum(
                 buyOrders
-                    .map((order) => Number(order.amountOffered))
+                    .map(
+                        (order) =>
+                            Number(order.amountOffered) /
+                            Number(order.priceOffered)
+                    )
                     .reduce(
                         (partialSum, a) =>
                             Number(bnum(partialSum).plus(bnum(a))),
@@ -279,14 +294,20 @@ export class SecondaryIssuePool implements PoolBase {
                     )
             );
 
+            orderBookdepth = scale(
+                bnum(orderBookdepth.toString()),
+                poolPairData.decimalsIn
+            );
+
             if (Number(amount) > Number(orderBookdepth)) return ZERO;
 
             const tokensOut = this.getTokenAmount(
                 amount,
                 buyOrders,
-                poolPairData.currencyScalingFactor
+                poolPairData.currencyScalingFactor,
+                "Sell"
             );
-
+            console.log("tokensOut",Number(tokensOut));
             const scaleTokensOut = formatFixed(
                 BigNumber.from(
                     Math.trunc(Number(tokensOut.toString())).toString()
@@ -307,7 +328,7 @@ export class SecondaryIssuePool implements PoolBase {
         try {
             if (amount.isZero()) return ZERO;
 
-            const sellOrders = poolPairData.ordersDataScaled.filter((order) =>
+            let sellOrders = poolPairData.ordersDataScaled.filter((order) =>
                     isSameAddress(
                         order.tokenInAddress,
                         poolPairData.security
@@ -317,23 +338,43 @@ export class SecondaryIssuePool implements PoolBase {
                         trades.orderReference !== order.orderReference
                 )
             );
+            sellOrders = sellOrders.sort(
+                (a, b) => a.priceOffered.toNumber() - b.priceOffered.toNumber()
+            );
+            console.log(
+                sellOrders.map((obj) => ({
+                    ...obj,
+                    priceOffered: obj.priceOffered.toString(),
+                    amountOffered: obj.amountOffered.toString()
+                }))
+            );
 
-            const orderBookdepth = bnum(
+            let orderBookdepth = bnum(
                 sellOrders
-                    .map((order) => Number(order.amountOffered))
+                    .map(
+                        (order) =>
+                            Number(order.amountOffered) *
+                            Number(order.priceOffered)
+                    )
                     .reduce(
                         (partialSum, a) =>
                             Number(bnum(partialSum).plus(bnum(a))),
                         0
                     )
             );
-
+            orderBookdepth = scale(bnum(
+                formatFixed(
+                BigNumber.from(orderBookdepth.toString()),
+                poolPairData.decimalsOut*2
+            )), poolPairData.decimalsIn);
+            console.log("orderBookdepth",Number(orderBookdepth), Number(amount));
             if (Number(amount) > Number(orderBookdepth)) return ZERO;
 
             const tokensIn = this.getTokenAmount(
                 amount,
                 sellOrders,
-                poolPairData.currencyScalingFactor
+                poolPairData.currencyScalingFactor,
+                "Buy"
             );
 
             const scaleTokensOut = formatFixed(
@@ -460,17 +501,27 @@ export class SecondaryIssuePool implements PoolBase {
     getTokenAmount(
         amount: OldBigNumber,
         ordersDataScaled: OrdersScaled[],
-        scalingFactor: number
+        scalingFactor: number,
+        orderType: string
     ): OldBigNumber {
         let returnAmount = BigInt(0);
         for (let i = 0; i < ordersDataScaled.length; i++) {
-            if (Number(ordersDataScaled[i].amountOffered) <= Number(amount)) {
-                returnAmount = MathSol.add(
-                    returnAmount,
-                    MathSol.mulDownFixed(
+            const checkValue =
+                orderType === 'Sell'
+                    ? MathSol.divDownFixed(
                         BigInt(Number(ordersDataScaled[i].amountOffered)),
                         BigInt(Number(ordersDataScaled[i].priceOffered))
-                    )
+                      )
+                    : MathSol.mulDownFixed(
+                        BigInt(Number(ordersDataScaled[i].amountOffered)),
+                        BigInt(Number(ordersDataScaled[i].priceOffered))
+                      );
+            console.log("checkValue",checkValue);
+            console.log("amount",Number(amount));
+            if (checkValue <= Number(amount)) {
+                returnAmount = MathSol.add(
+                    returnAmount,
+                    BigInt(Number(ordersDataScaled[i].amountOffered))
                 );
             } else {
                 returnAmount = MathSol.add(
@@ -481,9 +532,7 @@ export class SecondaryIssuePool implements PoolBase {
                     )
                 );
             }
-            amount = bnum(
-                Number(amount) - Number(ordersDataScaled[i].amountOffered)
-            );
+            amount = bnum(Number(amount) - Number(checkValue));
             if (Number(amount) < 0) break;
         }
         returnAmount = MathSol.divDown(

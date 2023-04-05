@@ -1,4 +1,4 @@
-// TS_NODE_PROJECT='tsconfig.testing.json' npx mocha -r ts-node/register test/testTemplate.spec.ts
+// TS_NODE_PROJECT='tsconfig.testing.json' npx mocha -r ts-node/register test/poolsSecondary.spec.ts
 import { expect } from 'chai';
 import cloneDeep from 'lodash.clonedeep';
 import { parseFixed, formatFixed } from '@ethersproject/bignumber';
@@ -67,7 +67,7 @@ describe('Secondary pool tests', () => {
             it('Exact Security In > Currency Out', async () => {
                 const tokenIn = DAI;
                 const tokenOut = USDC;
-                const amountIn = scale(bnum('5'), tokenIn.decimals);
+                const amountIn = scale(bnum('7'), tokenIn.decimals);
                 const poolSG = cloneDeep(testPools);
                 const pool = SecondaryIssuePool.fromPool(poolSG.pools[0]);
                 const poolPairData = pool.parsePoolPairData(
@@ -79,25 +79,25 @@ describe('Secondary pool tests', () => {
                     poolPairData,
                     amountIn
                 );
-                expect(amountOut.toString()).to.eq('15.36');
+                expect(amountOut.toString()).to.eq('56');
             });
         });
         context('_tokenInForExactTokenOut', () => {
-            it('Exact Security Out > Currency In', async () => {
+            it('Exact Currency In > Security Out', async () => {
                 const tokenIn = USDC;
                 const tokenOut = DAI;
-                const amountOut = scale(bnum('5'), tokenOut.decimals);
+                const amountIn = scale(bnum('50'), tokenIn.decimals);
                 const poolSG = cloneDeep(testPools);
                 const pool = SecondaryIssuePool.fromPool(poolSG.pools[0]);
                 const poolPairData = pool.parsePoolPairData(
                     tokenIn.address,
                     tokenOut.address
                 );
-                const amountIn = pool._tokenInForExactTokenOut(
+                const amountOut = pool._tokenInForExactTokenOut(
                     poolPairData,
-                    amountOut
+                    amountIn
                 );
-                expect(amountIn.toString()).to.eq('13.75');
+                expect(amountOut.toString()).to.eq('163.75');
             });
         });
     });
