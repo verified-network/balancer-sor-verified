@@ -77,7 +77,8 @@ describe('Secondary pool tests', () => {
 
                 const amountOut = pool._exactTokenInForTokenOut(
                     poolPairData,
-                    amountIn
+                    amountIn,
+                    '0xaa0d06ed9cefb0b26ef011363c9d7880feda8f08'
                 );
                 expect(amountOut.toString()).to.eq('56');
             });
@@ -95,7 +96,8 @@ describe('Secondary pool tests', () => {
                 );
                 const amountOut = pool._tokenInForExactTokenOut(
                     poolPairData,
-                    amountIn
+                    amountIn,
+                    '0xaa0d06ed9cefb0b26ef011363c9d7880feda8f08'
                 );
                 expect(amountOut.toString()).to.eq('7.022900763358778');
             });

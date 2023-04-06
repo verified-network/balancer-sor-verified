@@ -48,6 +48,7 @@ type OrdersScaled = Omit<
     orderReference: string;
     amountOffered: OldBigNumber;
     priceOffered: OldBigNumber;
+    creator: string;
 };
 
 type SecondaryTradesScaled = Omit<
@@ -169,6 +170,7 @@ export class SecondaryIssuePool implements PoolBase {
                 priceOffered: bnum(
                     parseFixed(order.priceOffered, 18).toString()
                 ),
+                creator: order.creator,
             };
         });
         const secondaryTradesScaled = this.secondaryTrades.map((order) => {
@@ -258,13 +260,17 @@ export class SecondaryIssuePool implements PoolBase {
 
     _exactTokenInForTokenOut(
         poolPairData: SecondaryIssuePoolPairData,
-        amount: OldBigNumber
+        amount: OldBigNumber,
+        creator: string
     ): OldBigNumber {
         try {
             if (amount.isZero()) return ZERO;
 
             let buyOrders = poolPairData.ordersDataScaled.filter((order) =>
-                isSameAddress(order.tokenInAddress, poolPairData.currency)
+                    isSameAddress(
+                        order.tokenInAddress,
+                        poolPairData.currency
+                    ) && order.creator.toLowerCase() !== creator.toLowerCase()
             );
 
             if (poolPairData.secondaryTradesScaled.length) {
@@ -318,7 +324,8 @@ export class SecondaryIssuePool implements PoolBase {
 
     _tokenInForExactTokenOut(
         poolPairData: SecondaryIssuePoolPairData,
-        amount: OldBigNumber
+        amount: OldBigNumber,
+        creator: string
     ): OldBigNumber {
         try {
             amount = bnum(
@@ -327,7 +334,10 @@ export class SecondaryIssuePool implements PoolBase {
             if (amount.isZero()) return ZERO;
 
             let sellOrders = poolPairData.ordersDataScaled.filter((order) =>
-                isSameAddress(order.tokenInAddress, poolPairData.security)
+                    isSameAddress(
+                        order.tokenInAddress,
+                        poolPairData.security
+                    ) && order.creator.toLowerCase() !== creator.toLowerCase()
             );
             if (poolPairData.secondaryTradesScaled.length) {
                 sellOrders = sellOrders.filter((order) =>
@@ -391,7 +401,7 @@ export class SecondaryIssuePool implements PoolBase {
             const isCashToken =
                 poolPairData.pairType === PairTypes.CashTokenToSecurityToken;
             const tokenOutCalculated = parseFixed(
-                this._exactTokenInForTokenOut(poolPairData, amount).toString(),
+                this._exactTokenInForTokenOut(poolPairData, amount, '0x0').toString(),
                 18
             );
             if (isCashToken) {
@@ -437,7 +447,7 @@ export class SecondaryIssuePool implements PoolBase {
             const isCashToken =
                 poolPairData.pairType === PairTypes.CashTokenToSecurityToken;
             const tokenInCalculated = parseFixed(
-                this._tokenInForExactTokenOut(poolPairData, amount).toString(),
+                this._tokenInForExactTokenOut(poolPairData, amount, '0x0').toString(),
                 18
             );
 

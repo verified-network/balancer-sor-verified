@@ -123,6 +123,7 @@ export type Orders = {
     amountOffered: string;
     priceOffered: string;
     orderReference: string;
+    creator: string;
 };
 
 export type SecondaryTrades = {
@@ -224,11 +225,13 @@ export interface PoolBase {
     updateTokenBalanceForPool: (token: string, newBalance: BigNumber) => void;
     _exactTokenInForTokenOut: (
         poolPairData: PoolPairBase,
-        amount: OldBigNumber
+        amount: OldBigNumber,
+        creator?: string
     ) => OldBigNumber;
     _tokenInForExactTokenOut: (
         poolPairData: PoolPairBase,
-        amount: OldBigNumber
+        amount: OldBigNumber,
+        creator?: string
     ) => OldBigNumber;
     _spotPriceAfterSwapExactTokenInForTokenOut: (
         poolPairData: PoolPairBase,
