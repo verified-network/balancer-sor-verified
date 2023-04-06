@@ -264,15 +264,17 @@ export class SecondaryIssuePool implements PoolBase {
             if (amount.isZero()) return ZERO;
 
             let buyOrders = poolPairData.ordersDataScaled.filter((order) =>
-                    isSameAddress(
-                        order.tokenOutAddress,
-                        poolPairData.security
-                    ) &&
-                    poolPairData.secondaryTradesScaled.some(
-                        (trades) =>
-                            trades.orderReference !== order.orderReference
-                    )
+                isSameAddress(order.tokenOutAddress, poolPairData.security)
             );
+
+            if (poolPairData.secondaryTradesScaled.length) {
+                buyOrders = buyOrders.filter((order) =>
+                    poolPairData.secondaryTradesScaled.some(
+                        (trades) => trades.orderReference !== order.orderReference
+                    )
+                );
+            }
+
             buyOrders = buyOrders.sort(
                 (a, b) => b.priceOffered.toNumber() - a.priceOffered.toNumber()
             );
@@ -325,15 +327,15 @@ export class SecondaryIssuePool implements PoolBase {
             if (amount.isZero()) return ZERO;
 
             let sellOrders = poolPairData.ordersDataScaled.filter((order) =>
-                    isSameAddress(
-                        order.tokenInAddress,
-                        poolPairData.security
-                    ) &&
-                    poolPairData.secondaryTradesScaled.some(
-                        (trades) =>
-                            trades.orderReference !== order.orderReference
-                )
+                isSameAddress(order.tokenInAddress, poolPairData.security)
             );
+            if (poolPairData.secondaryTradesScaled.length) {
+                sellOrders = sellOrders.filter((order) =>
+                    poolPairData.secondaryTradesScaled.some(
+                        (trades) => trades.orderReference !== order.orderReference
+                    )
+                );
+            }
             sellOrders = sellOrders.sort(
                 (a, b) => a.priceOffered.toNumber() - b.priceOffered.toNumber()
             );
