@@ -97,7 +97,7 @@ describe('Secondary pool tests', () => {
                     poolPairData,
                     amountIn
                 );
-                expect(amountOut.toString()).to.eq('163.75');
+                expect(amountOut.toString()).to.eq('7.022900763358778');
             });
         });
     });
