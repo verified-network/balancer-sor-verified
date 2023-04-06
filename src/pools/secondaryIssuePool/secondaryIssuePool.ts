@@ -264,7 +264,7 @@ export class SecondaryIssuePool implements PoolBase {
             if (amount.isZero()) return ZERO;
 
             let buyOrders = poolPairData.ordersDataScaled.filter((order) =>
-                isSameAddress(order.tokenOutAddress, poolPairData.security)
+                isSameAddress(order.tokenInAddress, poolPairData.currency)
             );
 
             if (poolPairData.secondaryTradesScaled.length) {
