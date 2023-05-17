@@ -124,6 +124,7 @@ export type Orders = {
     priceOffered: string;
     orderReference: string;
     creator: string;
+    timestamp: string;
 };
 
 export type SecondaryTrades = {

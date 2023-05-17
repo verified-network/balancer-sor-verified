@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import cloneDeep from 'lodash.clonedeep';
 import { parseFixed, formatFixed } from '@ethersproject/bignumber';
 import { bnum, scale } from '../src/utils/bignumber';
-import { DAI, USDC } from './lib/constants';
+import { DAI, USDC, WETH } from './lib/constants';
 import { WeiPerEther as ONE } from '@ethersproject/constants';
 import { SwapTypes } from '../src';
 import Big from 'big.js';
@@ -66,7 +66,7 @@ describe('Secondary pool tests', () => {
         context('_exactTokenInForTokenOut', () => {
             it('Exact Security In > Currency Out', async () => {
                 const tokenIn = DAI;
-                const tokenOut = USDC;
+                const tokenOut = WETH;
                 const amountIn = scale(bnum('7'), tokenIn.decimals);
                 const poolSG = cloneDeep(testPools);
                 const pool = SecondaryIssuePool.fromPool(poolSG.pools[0]);
@@ -80,7 +80,7 @@ describe('Secondary pool tests', () => {
                     amountIn,
                     '0xaa0d06ed9cefb0b26ef011363c9d7880feda8f08'
                 );
-                expect(amountOut.toString()).to.eq('56');
+                expect(amountOut.toString()).to.eq('60');
             });
         });
         context('_tokenInForExactTokenOut', () => {
@@ -99,7 +99,7 @@ describe('Secondary pool tests', () => {
                     amountIn,
                     '0xaa0d06ed9cefb0b26ef011363c9d7880feda8f08'
                 );
-                expect(amountOut.toString()).to.eq('7.022900763358778');
+                expect(amountOut.toString()).to.eq('1.5267175572519084');
             });
         });
     });
