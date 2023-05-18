@@ -80,7 +80,7 @@ describe('Secondary pool tests', () => {
                     amountIn,
                     '0xaa0d06ed9cefb0b26ef011363c9d7880feda8f08'
                 );
-                expect(amountOut.toString()).to.eq('60');
+                expect(amountOut.toString()).to.eq('58');
             });
         });
         context('_tokenInForExactTokenOut', () => {

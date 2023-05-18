@@ -280,15 +280,14 @@ export class SecondaryIssuePool implements PoolBase {
             let buyOrders = poolPairData.ordersDataScaled
                 .filter(
                     (order) =>
-                        isSameAddress(
+                        !isSameAddress(
                             order.tokenInAddress,
-                            poolPairData.currency
+                            poolPairData.security
                         ) &&
                         order.creator.toLowerCase() !== creator.toLowerCase()
                 )
                 .sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
-                const amountTest = buyOrders.map((order)=> {return {...order, amountOffered: (order.amountOffered).toNumber(), priceOffered: (order.priceOffered).toNumber()}})
-            console.log('sortedPending BUY Orders', amountTest);
+
             // filtering of edited & cancelled order from orderBook
             let openOrders: OrdersScaled[] = Object.values(buyOrders.reduce((acc, cur) => {
                     if (!acc[cur.orderReference]) {
@@ -300,24 +299,34 @@ export class SecondaryIssuePool implements PoolBase {
             );
 
             openOrders = openOrders.filter((order) => order.priceOffered.toNumber() !== 0 );
-            const amountTest2 = openOrders.map((order)=> {return {...order, amountOffered: (order.amountOffered).toNumber(), priceOffered: (order.priceOffered).toNumber()}})
 
-            console.log('uniquePending Buy Orders', amountTest2);
             if (poolPairData.secondaryTradesScaled.length) {
-                buyOrders = openOrders.filter((order) =>
-                    poolPairData.secondaryTradesScaled.some(
-                        (trades) =>
-                            trades.orderReference !== order.orderReference
-                    )
-                );
+                // buyOrders = openOrders.filter((order) =>
+                //     poolPairData.secondaryTradesScaled.some(
+                //         (trades) =>
+                //             trades.orderReference !== order.orderReference
+                //     )
+                // );
+                buyOrders = openOrders
+                    .map((order) => {
+                    // filtering of already matched orders
+                    const matchedTrade = poolPairData.secondaryTradesScaled.find(trade => trade.orderReference?.toLowerCase() === order.orderReference?.toLowerCase());
+                        if (matchedTrade) {
+                        const price = order.tokenInAddress.toLowerCase() === poolPairData.security.toLowerCase() ? (1 / Number(matchedTrade.priceOffered))*10**18 : Number(matchedTrade.priceOffered)/10**18;
+                        const amount = Number(matchedTrade.amountOffered) * price;
+                        return {
+                            ...order,
+                            amountOffered: bnum(Number(order.amountOffered) - Number(amount))
+                        };
+                    }
+                    return order;
+                }).filter(element => element && Number(element.amountOffered) !== 0);
+            
             }
 
             buyOrders = buyOrders.sort(
                 (a, b) => b.priceOffered.toNumber() - a.priceOffered.toNumber()
             );
-            const amountTest23 = buyOrders.map((order)=> {return {...order, amountOffered: (order.amountOffered).toNumber(), priceOffered: (order.priceOffered).toNumber()}})
-
-            console.log("buyOrders",amountTest23);
 
             const orderBookdepth = bnum(
                 buyOrders
@@ -333,7 +342,6 @@ export class SecondaryIssuePool implements PoolBase {
                         0
                     )
             );
-            console.log("orderBookdepth",orderBookdepth.toNumber());
 
             if (Number(amount) > Number(orderBookdepth)) return ZERO;
 
@@ -369,13 +377,12 @@ export class SecondaryIssuePool implements PoolBase {
             if (amount.isZero()) return ZERO;
 
             let sellOrders = poolPairData.ordersDataScaled.filter((order) =>
-                    isSameAddress(
+                    !isSameAddress(
                         order.tokenInAddress,
-                        poolPairData.security
+                        poolPairData.currency
                     ) && order.creator.toLowerCase() !== creator.toLowerCase()
             ).sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
             const amountTest = sellOrders.map((order)=> {return {...order, amountOffered: (order.amountOffered).toNumber(), priceOffered: (order.priceOffered).toNumber()}})
-            console.log("Sell ORders", amountTest);
 
             // filtering of edited & cancelled order from orderBook
             let openOrders: OrdersScaled[] = Object.values(sellOrders.reduce((acc, cur) => {
@@ -388,25 +395,27 @@ export class SecondaryIssuePool implements PoolBase {
             );
 
             openOrders = openOrders.filter((order) => order.priceOffered.toNumber() !== 0 );
-            const amountTest2 = openOrders.map((order)=> {return {...order, amountOffered: (order.amountOffered).toNumber(), priceOffered: (order.priceOffered).toNumber()}})
-
-            console.log('uniquePending Sell Orders', amountTest2);
 
             if (poolPairData.secondaryTradesScaled.length) {
-                sellOrders = openOrders.filter((order) =>
-                    poolPairData.secondaryTradesScaled.some(
-                        (trades) => trades.orderReference !== order.orderReference
-                    )
-                );
+                sellOrders = openOrders
+                    .map((order) => {
+                    // filtering of already matched orders
+                    const matchedTrade = poolPairData.secondaryTradesScaled.find(trade => trade.orderReference?.toLowerCase() === order.orderReference?.toLowerCase());
+                        if (matchedTrade) {
+                        const price = order.tokenInAddress.toLowerCase() === poolPairData.security.toLowerCase() ? (1 / Number(matchedTrade.priceOffered))*10**18 : Number(matchedTrade.priceOffered)/10**18;
+                        const amount = Number(matchedTrade.amountOffered) * price;
+                        return {
+                            ...order,
+                            amountOffered: bnum(Number(order.amountOffered) - Number(amount))
+                        };
+                    }
+                    return order;
+                }).filter(element => element && Number(element.amountOffered) !== 0);
+
             }
             sellOrders = sellOrders.sort(
                 (a, b) => a.priceOffered.toNumber() - b.priceOffered.toNumber()
             );
-
-            const amountTest23 = sellOrders.map((order)=> {return {...order, amountOffered: (order.amountOffered).toNumber(), priceOffered: (order.priceOffered).toNumber()}})
-
-            console.log("Sell Orders",amountTest23);
-
 
             const orderBookdepth = bnum(
                 sellOrders
@@ -422,9 +431,6 @@ export class SecondaryIssuePool implements PoolBase {
                         0
                     )
             );
-
-            console.log("orderBookdepth",orderBookdepth.toNumber());
-
 
             if (Number(amount) > Number(orderBookdepth)) return ZERO;
 
