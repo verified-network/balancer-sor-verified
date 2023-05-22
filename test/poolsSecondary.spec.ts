@@ -83,6 +83,26 @@ describe('Secondary pool tests', () => {
                 expect(amountOut.toString()).to.eq('58');
             });
         });
+        context('_spotPriceAfterSwapExactTokenInForTokenOut', () => {
+            it('Calculate Spot price after Security In', async () => {
+                const tokenIn = DAI;
+                const tokenOut = WETH;
+                const amountIn = scale(bnum('7'), tokenIn.decimals);
+                const poolSG = cloneDeep(testPools);
+                const pool = SecondaryIssuePool.fromPool(poolSG.pools[0]);
+                const poolPairData = pool.parsePoolPairData(
+                    tokenIn.address,
+                    tokenOut.address
+                );
+
+                const amountOut = pool._spotPriceAfterSwapExactTokenInForTokenOut(
+                        poolPairData,
+                        amountIn,
+                        '0xaa0d06ed9cefb0b26ef011363c9d7880feda8f08'
+                );
+                expect(amountOut.toString()).to.eq('0.392523364485981308');
+            });
+        });
         context('_tokenInForExactTokenOut', () => {
             it('Exact Currency In > Security Out', async () => {
                 const tokenIn = USDC;
@@ -100,6 +120,26 @@ describe('Secondary pool tests', () => {
                     '0xaa0d06ed9cefb0b26ef011363c9d7880feda8f08'
                 );
                 expect(amountOut.toString()).to.eq('1.5267175572519084');
+            });
+        });
+        context('_spotPriceAfterSwapTokenInForExactTokenOut', () => {
+            it('Calculate Spot price after Exact Currency In', async () => {
+                const tokenIn = USDC;
+                const tokenOut = DAI;
+                const amountIn = scale(bnum('50'), tokenIn.decimals);
+                const poolSG = cloneDeep(testPools);
+                const pool = SecondaryIssuePool.fromPool(poolSG.pools[0]);
+                const poolPairData = pool.parsePoolPairData(
+                    tokenIn.address,
+                    tokenOut.address
+                );
+
+                const amountOut = pool._spotPriceAfterSwapTokenInForExactTokenOut(
+                        poolPairData,
+                        amountIn,
+                        '0xaa0d06ed9cefb0b26ef011363c9d7880feda8f08'
+                    );
+                expect(amountOut.toString()).to.eq('1.523255813953488372');
             });
         });
     });

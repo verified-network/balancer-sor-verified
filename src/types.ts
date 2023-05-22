@@ -236,11 +236,13 @@ export interface PoolBase {
     ) => OldBigNumber;
     _spotPriceAfterSwapExactTokenInForTokenOut: (
         poolPairData: PoolPairBase,
-        amount: OldBigNumber
+        amount: OldBigNumber,
+        creator?: string
     ) => OldBigNumber;
     _spotPriceAfterSwapTokenInForExactTokenOut: (
         poolPairData: PoolPairBase,
-        amount: OldBigNumber
+        amount: OldBigNumber,
+        creator?: string
     ) => OldBigNumber;
     _derivativeSpotPriceAfterSwapExactTokenInForTokenOut: (
         poolPairData: PoolPairBase,
