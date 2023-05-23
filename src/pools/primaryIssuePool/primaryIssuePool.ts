@@ -38,6 +38,7 @@ export type PrimaryIssuePoolPairData = PoolPairBase & {
     tokenIndexOut: number;
     security: string;
     currency: string;
+    poolCurrencyScalingFactor: number;
     currencyScalingFactor: number;
     minimumOrderSize: BigNumber;
     minimumPrice: BigNumber;
@@ -142,6 +143,11 @@ export class PrimaryIssuePool implements PoolBase {
         const tO = this.tokens[tokenIndexOut];
         const balanceOut = tO.balance;
         const decimalsOut = tO.decimals;
+        const currencyIndex = this.tokens.findIndex(
+            (t) => getAddress(t.address) === getAddress(this.currency)
+        );
+        const currencyDecimalsOut = this.tokens[currencyIndex].decimals;
+        const poolCurrencyScalingFactor: number = 18 - currencyDecimalsOut;
 
         // Get all token balances
         const allBalances = this.tokens.map(({ balance }) => bnum(balance));
@@ -176,6 +182,7 @@ export class PrimaryIssuePool implements PoolBase {
             security: this.security,
             currency: this.currency,
             currencyScalingFactor: currencyScalingFactor,
+            poolCurrencyScalingFactor: poolCurrencyScalingFactor,
             minimumOrderSize: this.minimumOrderSize,
             minimumPrice: this.minimumPrice,
             securityOffered: this.securityOffered,
@@ -397,7 +404,7 @@ export class PrimaryIssuePool implements PoolBase {
             if (isCashToken) {
                 const cashAmountFixed = parseFixed(
                     amount.toString(),
-                    poolPairData.currencyScalingFactor
+                    poolPairData.poolCurrencyScalingFactor
                 );
                 amount = bnum(cashAmountFixed.toString());
             }
@@ -440,7 +447,6 @@ export class PrimaryIssuePool implements PoolBase {
                 this._tokenInForExactTokenOut(poolPairData, amount).toString(),
                 18
             );
-
             if (!isCashToken) {
                 //Swap Currency OUT
                 const cashAmountFixed = parseFixed(
@@ -449,6 +455,7 @@ export class PrimaryIssuePool implements PoolBase {
                 );
                 amount = bnum(cashAmountFixed.toString());
             }
+
             let spotPrice: OldBigNumber;
             // sp = (x + z)/(y - y')
             // where,
@@ -457,10 +464,8 @@ export class PrimaryIssuePool implements PoolBase {
             // y  - total amount of tokens of the other type
             // y'  - total amount of tokens going out
             // p  - spot price
-            const numerator = bnum(
-                tokenInBalance.plus(tokenInCalculated)
-            );
-            const denominator = tokenOutBalance.sub(amount);
+            const numerator = bnum(tokenInBalance.plus(amount));
+            const denominator = tokenOutBalance.sub(tokenInCalculated);
             spotPrice = numerator.dividedBy(denominator);
             if (!isCashToken) {
                 spotPrice = bnum(1).dividedBy(spotPrice);

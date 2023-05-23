@@ -99,6 +99,25 @@ describe('Primary pool tests', () => {
                 expect(amountOut.toString()).to.eq('33.500223');
             });
         });
+        context('_spotPriceAfterSwapExactTokenInForTokenOut', () => {
+            it('Calculate Spot price for _exactTokenInForTokenOut', async () => {
+                const tokenIn = aDAI;
+                const tokenOut = USDC;
+                const amountIn = scale(bnum('50'), tokenIn.decimals);
+                const poolSG = cloneDeep(testPools);
+                const pool = PrimaryIssuePool.fromPool(poolSG.pools[0]);
+                const poolPairData = pool.parsePoolPairData(
+                    tokenIn.address,
+                    tokenOut.address
+                );
+
+                const amountOut = pool._spotPriceAfterSwapExactTokenInForTokenOut(
+                        poolPairData,
+                        amountIn
+                );
+                expect(amountOut.toString()).to.eq('0.000008866577822814');
+            });
+        });
         context('_tokenInForExactTokenOut', () => {
             it('Exact Currency out > Security In', async () => {
                 const tokenIn = aDAI; //currencyToken
@@ -133,6 +152,25 @@ describe('Primary pool tests', () => {
                     amountOut
                 );
                 expect(amountIn.toString()).to.eq('33.500223');
+            });
+        });
+        context('_spotPriceAfterSwapTokenInForExactTokenOut', () => {
+            it('Calculate Spot price after Currency In', async () => {
+                const tokenIn = USDC;
+                const tokenOut = aDAI;
+                const amountIn = scale(bnum('50'), tokenOut.decimals);
+                const poolSG = cloneDeep(testPools);
+                const pool = PrimaryIssuePool.fromPool(poolSG.pools[0]);
+                const poolPairData = pool.parsePoolPairData(
+                    tokenIn.address,
+                    tokenOut.address
+                );
+
+                const amountOut = pool._spotPriceAfterSwapTokenInForExactTokenOut(
+                        poolPairData,
+                        amountIn
+                );
+                expect(amountOut.toString()).to.eq('0.000020000089334327');
             });
         });
     });
