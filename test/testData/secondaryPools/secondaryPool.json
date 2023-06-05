@@ -48,14 +48,14 @@
               {
                 "id": "0x0fb769a851900a08538447e79727d9d2a0fe50cadaa222fb33a61d2da49dd135-0x20cd75c840b38dd250514ec478206c90f960ea34",
                 "orderReference": "0x26240f5cc982d84e581a425d696414d4d1239b777cd9032b003c950dd6b73394",
-                "priceOffered": "5",
-                "amountOffered": "3"
+                "price": "5",
+                "amount": "3"
               },
               {
                 "id": "0x0fb769a851900a08538447e79727d9d2a0fe50cadaa222fb33a61d2da49dd135-0x20cd75c840b38dd250514ec478206c90f960ea34",
                 "orderReference": "0x36240f5cc982d84e581a425d69641004d1239b777cd9032b003c950dd6b83394",
-                "priceOffered": "5",
-                "amountOffered": "15"
+                "price": "5",
+                "amount": "15"
               }
             ],
             "orders": [

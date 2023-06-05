@@ -1,17 +1,10 @@
 // TS_NODE_PROJECT='tsconfig.testing.json' npx mocha -r ts-node/register test/poolsSecondary.spec.ts
 import { getAddress } from '@ethersproject/address';
 import { BigNumber, formatFixed, parseFixed } from '@ethersproject/bignumber';
-import { One, WeiPerEther as ONE } from '@ethersproject/constants';
-import { ethers } from 'ethers';
+import { WeiPerEther as ONE } from '@ethersproject/constants';
 import Big from 'big.js';
 import { MathSol } from '../../utils/basicOperations';
-
-import {
-    BigNumber as OldBigNumber,
-    bnum,
-    scale,
-    ZERO,
-} from '../../utils/bignumber';
+import { BigNumber as OldBigNumber, bnum, ZERO } from '../../utils/bignumber';
 import { isSameAddress } from '../../utils';
 import {
     PoolBase,
@@ -55,7 +48,7 @@ type OrdersScaled = Omit<
 
 type SecondaryTradesScaled = Omit<
     SecondaryTrades,
-    'id' | 'amountOffered' | 'priceOffered' | 'orderReference'
+    'id' | 'amount' | 'price' | 'orderReference'
 > & {
     orderReference: string;
     amountOffered: OldBigNumber;
@@ -68,7 +61,7 @@ export type SecondaryIssuePoolPairData = PoolPairBase & {
     allBalancesScaled: BigNumber[]; // EVM Maths uses everything in 1e18 upscaled format and this avoids repeated scaling
     tokenIndexIn: number;
     tokenIndexOut: number;
-    securityIndex: number,
+    securityIndex: number;
     currencyIndex: number;
     poolCurrencyScalingFactor: number;
     currencyScalingFactor: number;
@@ -192,12 +185,8 @@ export class SecondaryIssuePool implements PoolBase {
         const secondaryTradesScaled = this.secondaryTrades.map((order) => {
             return {
                 orderReference: order.orderReference,
-                amountOffered: bnum(
-                    parseFixed(order.amountOffered, 18).toString()
-                ),
-                priceOffered: bnum(
-                    parseFixed(order.priceOffered, 18).toString()
-                ),
+                amountOffered: bnum(parseFixed(order.amount, 18).toString()),
+                priceOffered: bnum(parseFixed(order.price, 18).toString()),
             };
         });
         let currencyScalingFactor: number;

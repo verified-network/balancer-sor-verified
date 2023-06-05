@@ -3,13 +3,7 @@ import { BigNumber, formatFixed, parseFixed } from '@ethersproject/bignumber';
 import { WeiPerEther as ONE } from '@ethersproject/constants';
 import Big from 'big.js';
 import { MathSol } from '../../utils/basicOperations';
-
-import {
-    BigNumber as OldBigNumber,
-    bnum,
-    scale,
-    ZERO,
-} from '../../utils/bignumber';
+import { BigNumber as OldBigNumber, bnum, ZERO } from '../../utils/bignumber';
 import { isSameAddress } from '../../utils';
 import {
     PoolBase,
