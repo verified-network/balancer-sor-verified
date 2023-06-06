@@ -1,17 +1,10 @@
 // TS_NODE_PROJECT='tsconfig.testing.json' npx mocha -r ts-node/register test/poolsSecondary.spec.ts
 import { getAddress } from '@ethersproject/address';
 import { BigNumber, formatFixed, parseFixed } from '@ethersproject/bignumber';
-import { One, WeiPerEther as ONE } from '@ethersproject/constants';
-import { ethers } from 'ethers';
+import { WeiPerEther as ONE } from '@ethersproject/constants';
 import Big from 'big.js';
 import { MathSol } from '../../utils/basicOperations';
-
-import {
-    BigNumber as OldBigNumber,
-    bnum,
-    scale,
-    ZERO,
-} from '../../utils/bignumber';
+import { BigNumber as OldBigNumber, bnum, ZERO } from '../../utils/bignumber';
 import { isSameAddress } from '../../utils';
 import {
     PoolBase,
@@ -68,7 +61,7 @@ export type SecondaryIssuePoolPairData = PoolPairBase & {
     allBalancesScaled: BigNumber[]; // EVM Maths uses everything in 1e18 upscaled format and this avoids repeated scaling
     tokenIndexIn: number;
     tokenIndexOut: number;
-    securityIndex: number,
+    securityIndex: number;
     currencyIndex: number;
     poolCurrencyScalingFactor: number;
     currencyScalingFactor: number;

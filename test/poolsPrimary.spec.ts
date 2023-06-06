@@ -1,12 +1,10 @@
 // TS_NODE_PROJECT='tsconfig.testing.json' npx mocha -r ts-node/register test/poolsPrimary.spec.ts
 import { expect } from 'chai';
 import cloneDeep from 'lodash.clonedeep';
-import { BigNumber, formatFixed, parseFixed } from '@ethersproject/bignumber';
+import { parseFixed } from '@ethersproject/bignumber';
 import { bnum, scale } from '../src/utils/bignumber';
 import { USDC, aDAI } from './lib/constants';
 import { SwapTypes } from '../src';
-import { WeiPerEther as ONE } from '@ethersproject/constants';
-import Big from 'big.js';
 // Add new PoolType
 import { PrimaryIssuePool } from '../src/pools/primaryIssuePool/primaryIssuePool';
 // Add new pool test data in Subgraph Schema format
