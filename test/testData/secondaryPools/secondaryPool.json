@@ -8,7 +8,7 @@
             "tokens": [
                 {
                     "address": "0x6b175474e89094c44da98b954eedeac495271d0f",
-                    "balance": "1500.123456789123456789",
+                    "balance": "100",
                     "decimals": 18,
                     "id": "linear2id-0x6b175474e89094c44da98b954eedeac495271d0f",
                     "symbol": "DAI",
@@ -16,37 +16,258 @@
                     "weight": null
                 },
                 {
-                    "address": "0xfc1e690f61efd961294b3e1ce3313fbd8aa4f85d",
-                    "balance": "1500.123456789123456789",
-                    "decimals": 18,
-                    "id": "linear2id-0xfc1e690f61efd961294b3e1ce3313fbd8aa4f85d",
-                    "symbol": "aDAI",
+                    "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    "balance": "100",
+                    "decimals": 6,
+                    "id": "linear2id-0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    "symbol": "USDC",
                     "priceRate": "1.1",
                     "weight": null
                 },
                 {
-                    "address": "0x0000000000000000000000000000000000000002",
-                    "balance": "5192296858532827.628530496329220095",
+                    "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                    "balance": "100",
                     "decimals": 18,
-                    "id": "linear2id-0x0000000000000000000000000000000000000002",
-                    "symbol": "bDAI",
+                    "id": "linear2id-0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                    "symbol": "WETH",
                     "priceRate": "1",
                     "weight": null
                 }
             ],
             "tokensList": [
                 "0x6b175474e89094c44da98b954eedeac495271d0f",
-                "0xfc1e690f61efd961294b3e1ce3313fbd8aa4f85d",
-                "0x0000000000000000000000000000000000000002"
+                "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
             ],
             "totalShares": "2000.000000",
             "poolType": "AaveLinear",
-            "address": "0x0000000000000000000000000000000000000002",
+            "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
             "security": "0x6b175474e89094c44da98b954eedeac495271d0f",
-            "currency": "0xfc1e690f61efd961294b3e1ce3313fbd8aa4f85d",
-            "secondaryOffer": "string",
-            "bestUnfilledBid": "100.123456789123456789",
-            "bestUnfilledOffer": "100.123456789123456789"
+            "currency": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "secondaryTrades": [
+              {
+                "id": "0x0fb769a851900a08538447e79727d9d2a0fe50cadaa222fb33a61d2da49dd135-0x20cd75c840b38dd250514ec478206c90f960ea34",
+                "orderReference": "0x26240f5cc982d84e581a425d696414d4d1239b777cd9032b003c950dd6b73394",
+                "price": "5",
+                "amount": "3"
+              },
+              {
+                "id": "0x0fb769a851900a08538447e79727d9d2a0fe50cadaa222fb33a61d2da49dd135-0x20cd75c840b38dd250514ec478206c90f960ea34",
+                "orderReference": "0x36240f5cc982d84e581a425d69641004d1239b777cd9032b003c950dd6b83394",
+                "price": "5",
+                "amount": "15"
+              }
+            ],
+            "orders": [
+                {
+                  "id": "0x0a5e630b5d3c4a743186d0f739cb2071c064542dde7aa7f17325c8a3a788de6f-0x3b9ab9036f1edf6b8333f3ff6d0565ae737102f3",
+                  "tokenIn": {
+                    "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    "balance": "100",
+                    "decimals": 6,
+                    "id": "linear2id-0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    "symbol": "USDC",
+                    "priceRate": "1.1",
+                    "weight": null
+                  },
+                  "tokenOut": {
+                    "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                    "balance": "100",
+                    "decimals": 18,
+                    "id": "linear2id-0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                    "symbol": "WETH",
+                    "priceRate": "1",
+                    "weight": null
+                  },
+                  "amountOffered": "20",
+                  "priceOffered": "5",
+                  "orderReference": "0x26240f5cc982d84e581a425d696414d4d1239b777cd9032b003c950dd6b73394",
+                  "creator": "0xaa0d06ed9cefb0b26ef011263c9d7880feda8f08",
+                  "timestamp": "1681716528"
+                },
+                {
+                  "id": "0x0a5e630b5d3c4a743186d0f739cb2071c064542dde7aa7f17325c8a3a788de6f-0x3b9ab9036f1edf6b8333f3ff6d0565ae737102f3",
+                  "tokenIn": {
+                    "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    "balance": "100",
+                    "decimals": 6,
+                    "id": "linear2id-0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    "symbol": "USDC",
+                    "priceRate": "1.1",
+                    "weight": null
+                  },
+                  "tokenOut": {
+                    "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                    "balance": "100",
+                    "decimals": 18,
+                    "id": "linear2id-0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                    "symbol": "WETH",
+                    "priceRate": "1",
+                    "weight": null
+                  },
+                  "amountOffered": "30",
+                  "priceOffered": "3",
+                  "orderReference": "0x26240f5cc982d84e581a425d696414d4d1239b777cd9032b003c950dd6b83394",
+                  "creator": "0xaa0d06ed9cefb0b26ef011263c9d7880feda8f08",
+                  "timestamp": "1681716628"
+                },
+                {
+                  "id": "0x0a5e630b5d3c4a743186d0f739cb2071c064542dde7aa7f17325c8a3a788de6f-0x3b9ab9036f1edf6b8333f3ff6d0565ae737102f3",
+                  "tokenIn": {
+                    "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    "balance": "100",
+                    "decimals": 6,
+                    "id": "linear2id-0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    "symbol": "USDC",
+                    "priceRate": "1.1",
+                    "weight": null
+                  },
+                  "tokenOut": {
+                    "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                    "balance": "100",
+                    "decimals": 18,
+                    "id": "linear2id-0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                    "symbol": "WETH",
+                    "priceRate": "1",
+                    "weight": null
+                  },
+                  "amountOffered": "50",
+                  "priceOffered": "10",
+                  "orderReference": "0x26240f5cc982d84e581a425d696414d4d1239b777cd9032b998c950dd6b73394",
+                  "creator": "0xaa0d06ed9cefb0b26ef011263c9d7880feda8f08",
+                  "timestamp": "1681716728"
+                },
+                {
+                    "id": "0x0a5e630b5d3c4a743186d0f739cb2071c064542dde7aa7f17325c8a3a788de6f-0x3b9ab9036f1edf6b8333f3ff6d0565ae737102f3",
+                    "tokenIn": {
+                      "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                      "balance": "100",
+                      "decimals": 6,
+                      "id": "linear2id-0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                      "symbol": "USDC",
+                      "priceRate": "1.1",
+                      "weight": null
+                    },
+                    "tokenOut": {
+                      "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                      "balance": "100",
+                      "decimals": 18,
+                      "id": "linear2id-0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                      "symbol": "WETH",
+                      "priceRate": "1",
+                      "weight": null
+                    },
+                    "amountOffered": "4",
+                    "priceOffered": "12",
+                    "orderReference": "0x26235f5cc982d84e581a425d696414d4d1239b777cd9032b003c950dd6b83394",
+                    "creator": "0xaa0d06ed9cefb0b26ef011263c9d7880feda8f08",
+                    "timestamp": "1681716828"
+                },
+                {
+                  "id": "0x0a5e630b5d3c4a743186d0f739cb2071c064542dde7aa7f17325c8a3a788de6f-0x3b9ab9036f1edf6b8333f3ff6d0565ae737102f3",
+                  "tokenIn": {
+                    "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    "balance": "100",
+                    "decimals": 6,
+                    "id": "linear2id-0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    "symbol": "USDC",
+                    "priceRate": "1.1",
+                    "weight": null
+                  },
+                  "tokenOut": {
+                    "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                    "balance": "100",
+                    "decimals": 18,
+                    "id": "linear2id-0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                    "symbol": "WETH",
+                    "priceRate": "1",
+                    "weight": null
+                  },
+                  "amountOffered": "4",
+                  "priceOffered": "0",
+                  "orderReference": "0x26235f5cc982d84e581a425d696414d4d1239b777cd9032b003c950dd6b83394",
+                  "creator": "0xaa0d06ed9cefb0b26ef011263c9d7880feda8f08",
+                  "timestamp": "1881716928"
+              },
+                {
+                  "id": "0x0a5e630b5d3c4a743186d0f739cb2071c064542dde7aa7f17325c8a3a788de6f-0x3b9ab9036f1edf6b8333f3ff6d0565ae737102f3",
+                  "tokenIn": {
+                    "address": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+                    "balance": "100",
+                    "decimals": 18,
+                    "id": "linear2id-0x6b175474e89094c44da98b954eedeac495271d0f",
+                    "symbol": "DAI",
+                    "priceRate": "1",
+                    "weight": null
+                  },
+                  "tokenOut": {
+                    "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                    "balance": "100",
+                    "decimals": 18,
+                    "id": "linear2id-0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                    "symbol": "WETH",
+                    "priceRate": "1.1",
+                    "weight": null
+                  },
+                  "amountOffered": "6",
+                  "priceOffered": "2.75",
+                  "orderReference": "0x26240f5cc982d84e581a425d69641004d1239b777cd9032b003c950dd6b83394",
+                  "creator": "0xaa0d06ed9cefb0b26ef011263c9d7880feda8f08",
+                  "timestamp": "1681716928"
+              },
+              {
+                "id": "0x0a5e630b5d3c4a743186d0f739cb2071c064542dde7aa7f17325c8a3a788de6f-0x3b9ab9036f1edf6b8333f3ff6d0565ae737102f3",
+                "tokenIn": {
+                  "address": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+                  "balance": "100",
+                  "decimals": 18,
+                  "id": "linear2id-0x6b175474e89094c44da98b954eedeac495271d0f",
+                  "symbol": "DAI",
+                  "priceRate": "1",
+                  "weight": null
+                },
+                "tokenOut": {
+                  "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                  "balance": "100",
+                  "decimals": 18,
+                  "id": "linear2id-0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                  "symbol": "WETH",
+                  "priceRate": "1.1",
+                  "weight": null
+                },
+                "amountOffered": "10",
+                "priceOffered": "32.75",
+                "orderReference": "0x26240f5cc982d84e581a425d69641004d1239b777cd9032b003c950dd6b83394",
+                "creator": "0xaa0d06ed9cefb0b26ef011263c9d7880feda8f08",
+                "timestamp": "1681717528"
+            },
+            {
+              "id": "0x0a5e630b5d3c4a743186d0f739cb2071c064542dde7aa7f17325c8a3a788de6f-0x3b9ab9036f1edf6b8333f3ff6d0565ae737102f3",
+              "tokenIn": {
+                "address": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+                "balance": "100",
+                "decimals": 18,
+                "id": "linear2id-0x6b175474e89094c44da98b954eedeac495271d0f",
+                "symbol": "DAI",
+                "priceRate": "1",
+                "weight": null
+              },
+              "tokenOut": {
+                "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                "balance": "100",
+                "decimals": 18,
+                "id": "linear2id-0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                "symbol": "WETH",
+                "priceRate": "1.1",
+                "weight": null
+              },
+              "amountOffered": "3",
+              "priceOffered": "2",
+              "orderReference": "0x36240f5cc982d84e581a425d69641004d1239b777cd9032b003c950dd6b83394",
+              "creator": "0xaa1d06ed9cefb0b26ef011263c9d7880feda8f08",
+              "timestamp": "1682717528"
+          }
+            ]
         }
     ]
 }

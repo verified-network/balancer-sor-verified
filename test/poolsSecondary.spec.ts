@@ -1,12 +1,10 @@
-// TS_NODE_PROJECT='tsconfig.testing.json' npx mocha -r ts-node/register test/testTemplate.spec.ts
+// TS_NODE_PROJECT='tsconfig.testing.json' npx mocha -r ts-node/register test/poolsSecondary.spec.ts
 import { expect } from 'chai';
 import cloneDeep from 'lodash.clonedeep';
-import { parseFixed, formatFixed } from '@ethersproject/bignumber';
+import { parseFixed } from '@ethersproject/bignumber';
 import { bnum, scale } from '../src/utils/bignumber';
-import { DAI, aDAI } from './lib/constants';
-import { WeiPerEther as ONE } from '@ethersproject/constants';
+import { DAI, USDC, WETH } from './lib/constants';
 import { SwapTypes } from '../src';
-import Big from 'big.js';
 // Add new PoolType
 import { SecondaryIssuePool } from '../src/pools/secondaryIssuePool/secondaryIssuePool';
 // Add new pool test data in Subgraph Schema format
@@ -17,7 +15,7 @@ describe('Secondary pool tests', () => {
         it(`should correctly parse token > token`, async () => {
             // It's useful to use tokens with <18 decimals for some tests to make sure scaling is ok
             const tokenIn = DAI;
-            const tokenOut = aDAI;
+            const tokenOut = USDC;
             const poolSG = cloneDeep(testPools).pools[0];
             const pool = SecondaryIssuePool.fromPool(poolSG);
             const poolPairData = pool.parsePoolPairData(
@@ -38,7 +36,7 @@ describe('Secondary pool tests', () => {
         it(`getLimitAmountSwap, token to token`, async () => {
             // Test limit amounts against expected values
             const tokenIn = DAI;
-            const tokenOut = aDAI;
+            const tokenOut = USDC;
             const poolSG = cloneDeep(testPools);
             const pool = SecondaryIssuePool.fromPool(poolSG.pools[0]);
             const poolPairData = pool.parsePoolPairData(
@@ -51,23 +49,23 @@ describe('Secondary pool tests', () => {
                 SwapTypes.SwapExactIn
             );
 
-            expect(amount.toString()).to.eq('450.037037036737037036');
+            expect(amount.toString()).to.eq('30');
 
             amount = pool.getLimitAmountSwap(
                 poolPairData,
                 SwapTypes.SwapExactOut
             );
 
-            expect(amount.toString()).to.eq('450.037037036737037036');
+            expect(amount.toString()).to.eq('30');
         });
     });
 
     context('Test Swaps', () => {
         context('_exactTokenInForTokenOut', () => {
-            it('DAI > Best Bid', async () => {
+            it('Exact Security In > Currency Out', async () => {
                 const tokenIn = DAI;
-                const tokenOut = aDAI;
-                const amountIn = scale(bnum('20'), 18);
+                const tokenOut = WETH;
+                const amountIn = scale(bnum('7'), tokenIn.decimals);
                 const poolSG = cloneDeep(testPools);
                 const pool = SecondaryIssuePool.fromPool(poolSG.pools[0]);
                 const poolPairData = pool.parsePoolPairData(
@@ -77,27 +75,69 @@ describe('Secondary pool tests', () => {
 
                 const amountOut = pool._exactTokenInForTokenOut(
                     poolPairData,
-                    amountIn
+                    amountIn,
+                    '0xaa0d06ed9cefb0b26ef011363c9d7880feda8f08'
                 );
-                expect(amountOut.toString()).to.eq('15019.75461041763115360785');
+                expect(amountOut.toString()).to.eq('58');
             });
         });
-        context('_tokenInForExactTokenOut', () => {
-            it('DAI > Best Bid', async () => {
+        context('_spotPriceAfterSwapExactTokenInForTokenOut', () => {
+            it('Calculate Spot price after Security In', async () => {
                 const tokenIn = DAI;
-                const tokenOut = aDAI;
-                const amountOut = scale(bnum('20'), 18);
+                const tokenOut = WETH;
+                const amountIn = scale(bnum('7'), tokenIn.decimals);
                 const poolSG = cloneDeep(testPools);
                 const pool = SecondaryIssuePool.fromPool(poolSG.pools[0]);
                 const poolPairData = pool.parsePoolPairData(
                     tokenIn.address,
                     tokenOut.address
                 );
-                const amountIn = pool._tokenInForExactTokenOut(
-                    poolPairData,
-                    amountOut
+
+                const amountOut = pool._spotPriceAfterSwapExactTokenInForTokenOut(
+                        poolPairData,
+                        amountIn,
+                        '0xaa0d06ed9cefb0b26ef011363c9d7880feda8f08'
                 );
-                expect(amountIn.toString()).to.eq('15019.75461041763115360785');
+                expect(amountOut.toString()).to.eq('0.392523364485981308');
+            });
+        });
+        context('_tokenInForExactTokenOut', () => {
+            it('Exact Currency In > Security Out', async () => {
+                const tokenIn = USDC;
+                const tokenOut = DAI;
+                const amountIn = scale(bnum('50'), tokenIn.decimals);
+                const poolSG = cloneDeep(testPools);
+                const pool = SecondaryIssuePool.fromPool(poolSG.pools[0]);
+                const poolPairData = pool.parsePoolPairData(
+                    tokenIn.address,
+                    tokenOut.address
+                );
+                const amountOut = pool._tokenInForExactTokenOut(
+                    poolPairData,
+                    amountIn,
+                    '0xaa0d06ed9cefb0b26ef011363c9d7880feda8f08'
+                );
+                expect(amountOut.toString()).to.eq('1.5267175572519084');
+            });
+        });
+        context('_spotPriceAfterSwapTokenInForExactTokenOut', () => {
+            it('Calculate Spot price after Exact Currency In', async () => {
+                const tokenIn = USDC;
+                const tokenOut = DAI;
+                const amountIn = scale(bnum('50'), tokenIn.decimals);
+                const poolSG = cloneDeep(testPools);
+                const pool = SecondaryIssuePool.fromPool(poolSG.pools[0]);
+                const poolPairData = pool.parsePoolPairData(
+                    tokenIn.address,
+                    tokenOut.address
+                );
+
+                const amountOut = pool._spotPriceAfterSwapTokenInForExactTokenOut(
+                        poolPairData,
+                        amountIn,
+                        '0xaa0d06ed9cefb0b26ef011363c9d7880feda8f08'
+                    );
+                expect(amountOut.toString()).to.eq('1.523255813953488372');
             });
         });
     });

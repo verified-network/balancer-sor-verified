@@ -2,15 +2,9 @@
 import { getAddress } from '@ethersproject/address';
 import { BigNumber, formatFixed, parseFixed } from '@ethersproject/bignumber';
 import { WeiPerEther as ONE } from '@ethersproject/constants';
-import { ethers } from 'ethers';
 import Big from 'big.js';
-
-import {
-    BigNumber as OldBigNumber,
-    bnum,
-    scale,
-    ZERO,
-} from '../../utils/bignumber';
+import { MathSol } from '../../utils/basicOperations';
+import { BigNumber as OldBigNumber, bnum, ZERO } from '../../utils/bignumber';
 import { isSameAddress } from '../../utils';
 import {
     PoolBase,
@@ -19,6 +13,8 @@ import {
     SwapTypes,
     SubgraphPoolBase,
     SubgraphToken,
+    Orders,
+    SecondaryTrades,
 } from '../../types';
 
 export enum PairTypes {
@@ -31,18 +27,48 @@ type SecondaryIssuePoolToken = Pick<
     'address' | 'balance' | 'decimals'
 >;
 
+type OrdersScaled = Omit<
+    Orders,
+    | 'id'
+    | 'tokenIn'
+    | 'tokenOut'
+    | 'amountOffered'
+    | 'priceOffered'
+    | 'orderReference'
+    | 'timestamp'
+> & {
+    tokenInAddress: string;
+    tokenOutAddress: string;
+    orderReference: string;
+    amountOffered: OldBigNumber;
+    priceOffered: OldBigNumber;
+    creator: string;
+    timestamp: string;
+};
+
+type SecondaryTradesScaled = Omit<
+    SecondaryTrades,
+    'id' | 'amount' | 'price' | 'orderReference'
+> & {
+    orderReference: string;
+    amountOffered: OldBigNumber;
+    priceOffered: OldBigNumber;
+};
+
 export type SecondaryIssuePoolPairData = PoolPairBase & {
     pairType: PairTypes;
     allBalances: OldBigNumber[];
     allBalancesScaled: BigNumber[]; // EVM Maths uses everything in 1e18 upscaled format and this avoids repeated scaling
     tokenIndexIn: number;
     tokenIndexOut: number;
-
+    securityIndex: number;
+    currencyIndex: number;
+    poolCurrencyScalingFactor: number;
+    currencyScalingFactor: number;
     security: string;
     currency: string;
-    secondaryOffer: string;
-    bestBid: BigNumber;
-    bestOffer: BigNumber;
+    ordersDataScaled: OrdersScaled[];
+    secondaryTradesScaled: SecondaryTradesScaled[];
 };
 
 export class SecondaryIssuePool implements PoolBase {
@@ -55,9 +81,8 @@ export class SecondaryIssuePool implements PoolBase {
     tokensList: string[];
     security: string;
     currency: string;
-    secondaryOffer: string;
-    bestBid: BigNumber;
-    bestOffer: BigNumber;
+    orders: Orders[];
+    secondaryTrades: SecondaryTrades[];
 
     MAX_IN_RATIO = parseFixed('0.3', 18);
     MAX_OUT_RATIO = parseFixed('0.3', 18);
@@ -67,8 +92,6 @@ export class SecondaryIssuePool implements PoolBase {
             throw new Error('SecondaryIssuePool missing "security"');
         if (pool.currency === undefined)
             throw new Error('SecondaryIssuePool missing "currency"');
-        if (!pool.secondaryOffer)
-            throw new Error('SecondaryIssuePool missing "secondaryOffer"');
 
         return new SecondaryIssuePool(
             pool.id,
@@ -79,9 +102,9 @@ export class SecondaryIssuePool implements PoolBase {
             pool.tokensList,
             pool.security,
             pool.currency,
-            pool.secondaryOffer,
-            ethers.utils.parseUnits(pool.bestUnfilledBid!),
-            ethers.utils.parseUnits(pool.bestUnfilledOffer!)
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            pool.orders!,
+            pool.secondaryTrades!
         );
     }
 
@@ -94,9 +117,8 @@ export class SecondaryIssuePool implements PoolBase {
         tokensList: string[],
         security: string,
         currency: string,
-        secondaryOffer: string,
-        bestBid: BigNumber,
-        bestOffer: BigNumber
+        orders: Orders[],
+        secondaryTrades: SecondaryTrades[]
     ) {
         this.id = id;
         this.address = address;
@@ -106,9 +128,8 @@ export class SecondaryIssuePool implements PoolBase {
         this.tokensList = tokensList;
         this.security = security;
         this.currency = currency;
-        this.secondaryOffer = secondaryOffer;
-        this.bestBid = bestBid;
-        this.bestOffer = bestOffer;
+        this.orders = orders;
+        this.secondaryTrades = secondaryTrades;
     }
 
     parsePoolPairData(
@@ -127,10 +148,18 @@ export class SecondaryIssuePool implements PoolBase {
         const tokenIndexOut = this.tokens.findIndex(
             (t) => getAddress(t.address) === getAddress(tokenOut)
         );
+        const currencyIndex = this.tokens.findIndex(
+            (t) => getAddress(t.address) === getAddress(this.currency)
+        );
+        const securityIndex = this.tokens.findIndex(
+            (t) => getAddress(t.address) === getAddress(this.security)
+        );
         if (tokenIndexOut < 0) throw 'Pool does not contain tokenOut';
         const tO = this.tokens[tokenIndexOut];
         const balanceOut = tO.balance;
         const decimalsOut = tO.decimals;
+        const currencyDecimalsOut = this.tokens[currencyIndex].decimals;
+        const poolCurrencyScalingFactor: number = 18 - currencyDecimalsOut;
 
         // Get all token balances
         const allBalances = this.tokens.map(({ balance }) => bnum(balance));
@@ -138,10 +167,35 @@ export class SecondaryIssuePool implements PoolBase {
             parseFixed(balance, 18)
         );
 
-        if (isSameAddress(tokenIn, this.currency)) { 
-            pairType = PairTypes.CashTokenToSecurityToken
+        const ordersDataScaled = this.orders.map((order) => {
+            return {
+                tokenInAddress: order.tokenIn.address,
+                tokenOutAddress: order.tokenOut.address,
+                orderReference: order.orderReference,
+                amountOffered: bnum(
+                    parseFixed(order.amountOffered, 18).toString()
+                ),
+                priceOffered: bnum(
+                    parseFixed(order.priceOffered, 18).toString()
+                ),
+                creator: order.creator,
+                timestamp: order.timestamp,
+            };
+        });
+        const secondaryTradesScaled = this.secondaryTrades.map((order) => {
+            return {
+                orderReference: order.orderReference,
+                amountOffered: bnum(parseFixed(order.amount, 18).toString()),
+                priceOffered: bnum(parseFixed(order.price, 18).toString()),
+            };
+        });
+        let currencyScalingFactor: number;
+        if (isSameAddress(tokenIn, this.currency)) {
+            pairType = PairTypes.CashTokenToSecurityToken;
+            currencyScalingFactor = 10 ** (18 - decimalsIn);
         } else {
-            pairType = PairTypes.SecurityTokenToCashToken
+            pairType = PairTypes.SecurityTokenToCashToken;
+            currencyScalingFactor = 10 ** (18 - decimalsOut);
         }
 
         const poolPairData: SecondaryIssuePoolPairData = {
@@ -158,13 +212,16 @@ export class SecondaryIssuePool implements PoolBase {
             allBalancesScaled, // TO DO - Change to BigInt??
             tokenIndexIn: tokenIndexIn,
             tokenIndexOut: tokenIndexOut,
+            securityIndex,
+            currencyIndex,
+            currencyScalingFactor: currencyScalingFactor,
+            poolCurrencyScalingFactor: poolCurrencyScalingFactor,
             decimalsIn: Number(decimalsIn),
             decimalsOut: Number(decimalsOut),
             security: this.security,
             currency: this.currency,
-            secondaryOffer: this.secondaryOffer,
-            bestBid: this.bestBid,
-            bestOffer: this.bestOffer
+            ordersDataScaled: ordersDataScaled,
+            secondaryTradesScaled: secondaryTradesScaled,
         };
 
         return poolPairData;
@@ -212,35 +269,94 @@ export class SecondaryIssuePool implements PoolBase {
 
     _exactTokenInForTokenOut(
         poolPairData: SecondaryIssuePoolPairData,
-        amount: OldBigNumber
+        amount: OldBigNumber,
+        creator: string
     ): OldBigNumber {
         try {
             if (amount.isZero()) return ZERO;
 
-            const isCashToken =
-                poolPairData.pairType === PairTypes.CashTokenToSecurityToken;
+            let buyOrders = poolPairData.ordersDataScaled
+                .filter(
+                    (order) =>
+                        !isSameAddress(
+                            order.tokenInAddress,
+                            poolPairData.security
+                        ) &&
+                        order.creator.toLowerCase() !== creator.toLowerCase()
+                )
+                .sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
 
-            let tokensOut: Big;
+            // filtering of edited & cancelled order from orderBook
+            let openOrders: OrdersScaled[] = Object.values(buyOrders.reduce((acc, cur) => {
+                    if (!acc[cur.orderReference]) {
+                        // If this is the first time we've seen this orderReference, add it to the accumulator
+                        acc[cur.orderReference] = cur;
+                    }
+                    return acc;
+                }, {})
+            );
 
-            const tokenIn = new Big(poolPairData.balanceIn);
-            const bestOffer = new Big(poolPairData.bestOffer);
-            const bestBid = new Big(poolPairData.bestBid);
+            openOrders = openOrders.filter((order) => order.priceOffered.toNumber() !== 0 );
 
-            if (isCashToken) {
-                //cash is sent in for purchase of security.
-                //This function calculates security token sent out for best (lowest) offer price.
-                tokensOut = tokenIn.div(bestOffer);
-            } else {
-                //security is sent in for sale against cash.
-                //This function calculates cash token sent out for best (highest) bid price.
-                const product = tokenIn.mul(bestBid);
-                // scaling down decimals of tokenIn[dynamic] & bestBid [18];
-                tokensOut = product.div(
-                    scale(bnum('10'), poolPairData.decimalsIn + 18)
-                );
+            if (poolPairData.secondaryTradesScaled.length) {
+                // buyOrders = openOrders.filter((order) =>
+                //     poolPairData.secondaryTradesScaled.some(
+                //         (trades) =>
+                //             trades.orderReference !== order.orderReference
+                //     )
+                // );
+                buyOrders = openOrders
+                    .map((order) => {
+                    // filtering of already matched orders
+                    const matchedTrade = poolPairData.secondaryTradesScaled.find(trade => trade.orderReference?.toLowerCase() === order.orderReference?.toLowerCase());
+                        if (matchedTrade) {
+                        const price = order.tokenInAddress.toLowerCase() === poolPairData.security.toLowerCase() ? (1 / Number(matchedTrade.priceOffered))*10**18 : Number(matchedTrade.priceOffered)/10**18;
+                        const amount = Number(matchedTrade.amountOffered) * price;
+                        return {
+                            ...order,
+                            amountOffered: bnum(Number(order.amountOffered) - Number(amount))
+                        };
+                    }
+                    return order;
+                }).filter(element => element && Number(element.amountOffered) !== 0);
+            
             }
 
-            return bnum(tokensOut.toString());
+            buyOrders = buyOrders.sort(
+                (a, b) => b.priceOffered.toNumber() - a.priceOffered.toNumber()
+            );
+
+            const orderBookdepth = bnum(
+                buyOrders
+                    .map(
+                        (order) =>
+                            (Number(order.amountOffered) /
+                                Number(order.priceOffered)) *
+                            Number(ONE)
+                    )
+                    .reduce(
+                        (partialSum, a) =>
+                            Number(bnum(partialSum).plus(bnum(a))),
+                        0
+                    )
+            );
+
+            if (Number(amount) > Number(orderBookdepth)) return ZERO;
+
+            const tokensOut = this.getTokenAmount(
+                amount,
+                buyOrders,
+                poolPairData.currencyScalingFactor,
+                'Sell'
+            );
+
+            const scaleTokensOut = formatFixed(
+                BigNumber.from(
+                    Math.trunc(Number(tokensOut.toString())).toString()
+                ),
+                poolPairData.decimalsOut
+            );
+            return bnum(scaleTokensOut);
         } catch (err) {
             console.error(`_evmoutGivenIn: ${err.message}`);
             return ZERO;
@@ -249,35 +365,86 @@ export class SecondaryIssuePool implements PoolBase {
 
     _tokenInForExactTokenOut(
         poolPairData: SecondaryIssuePoolPairData,
-        amount: OldBigNumber
+        amount: OldBigNumber,
+        creator: string
     ): OldBigNumber {
         try {
+            amount = bnum(
+                Number(amount) * Number(poolPairData.currencyScalingFactor)
+            );
             if (amount.isZero()) return ZERO;
 
-            const isCashToken =
-                poolPairData.pairType === PairTypes.CashTokenToSecurityToken;
+            let sellOrders = poolPairData.ordersDataScaled.filter((order) =>
+                    !isSameAddress(
+                        order.tokenInAddress,
+                        poolPairData.currency
+                    ) && order.creator.toLowerCase() !== creator.toLowerCase()
+            ).sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
 
-            let tokensIn: Big;
+            // filtering of edited & cancelled order from orderBook
+            let openOrders: OrdersScaled[] = Object.values(sellOrders.reduce((acc, cur) => {
+                    if (!acc[cur.orderReference]) {
+                        // If this is the first time we've seen this orderReference, add it to the accumulator
+                        acc[cur.orderReference] = cur;
+                    }
+                    return acc;
+                }, {})
+            );
 
-            const tokenOut = new Big(poolPairData.balanceOut);
-            const bestOffer = new Big(poolPairData.bestOffer);
-            const bestBid = new Big(poolPairData.bestBid);
+            openOrders = openOrders.filter((order) => order.priceOffered.toNumber() !== 0 );
 
-            if (isCashToken) {
-                //cash is sent out after sale of security.
-                //This function calculates security token to be sent in for best (highest) bid price.
-                tokensIn = tokenOut.div(bestBid);
-            } else {
-                //security is sent out after purchase with cash.
-                //This function calculates cash token to be sent in for best (lowest) offer price.
-                const product = tokenOut.mul(bestOffer);
-                // scaling down decimals of tokenOut & bestOffer;
-                tokensIn = product.div(
-                    scale(bnum('10'), poolPairData.decimalsOut + 18)
-                );
+            if (poolPairData.secondaryTradesScaled.length) {
+                sellOrders = openOrders
+                    .map((order) => {
+                    // filtering of already matched orders
+                    const matchedTrade = poolPairData.secondaryTradesScaled.find(trade => trade.orderReference?.toLowerCase() === order.orderReference?.toLowerCase());
+                        if (matchedTrade) {
+                        const price = order.tokenInAddress.toLowerCase() === poolPairData.security.toLowerCase() ? (1 / Number(matchedTrade.priceOffered))*10**18 : Number(matchedTrade.priceOffered)/10**18;
+                        const amount = Number(matchedTrade.amountOffered) * price;
+                        return {
+                            ...order,
+                            amountOffered: bnum(Number(order.amountOffered) - Number(amount))
+                        };
+                    }
+                    return order;
+                }).filter(element => element && Number(element.amountOffered) !== 0);
+
             }
+            sellOrders = sellOrders.sort(
+                (a, b) => a.priceOffered.toNumber() - b.priceOffered.toNumber()
+            );
 
-            return bnum(tokensIn.toString());
+            const orderBookdepth = bnum(
+                sellOrders
+                    .map(
+                        (order) =>
+                            (Number(order.amountOffered) *
+                                Number(order.priceOffered)) /
+                            Number(ONE)
+                    )
+                    .reduce(
+                        (partialSum, a) =>
+                            Number(bnum(partialSum).plus(bnum(a))),
+                        0
+                    )
+            );
+
+            if (Number(amount) > Number(orderBookdepth)) return ZERO;
+
+            const tokensIn = this.getTokenAmount(
+                amount,
+                sellOrders,
+                poolPairData.currencyScalingFactor,
+                'Buy'
+            );
+
+            const scaleTokensOut = formatFixed(
+                BigNumber.from(
+                    Math.trunc(Number(tokensIn.toString())).toString()
+                ),
+                poolPairData.decimalsOut
+            );
+            return bnum(scaleTokensOut);
         } catch (err) {
             console.error(`_evminGivenOut: ${err.message}`);
             return ZERO;
@@ -286,40 +453,49 @@ export class SecondaryIssuePool implements PoolBase {
 
     _spotPriceAfterSwapExactTokenInForTokenOut(
         poolPairData: SecondaryIssuePoolPairData,
-        amount: OldBigNumber
+        amount: OldBigNumber,
+        creator: string
     ): OldBigNumber {
         try {
+            const tokenInBalance = new Big(
+                poolPairData.allBalancesScaled[poolPairData.tokenIndexIn]
+            );
+            const tokenOutBalance = new Big(
+                poolPairData.allBalancesScaled[poolPairData.currencyIndex]
+            );
             const isCashToken =
                 poolPairData.pairType === PairTypes.CashTokenToSecurityToken;
-
-            const cashTokens = poolPairData.balanceIn;
-            const securityTokens = poolPairData.balanceOut;
-
-            let x: BigNumber, y: BigNumber;
-
+            const tokenOutCalculated = parseFixed(
+                this._exactTokenInForTokenOut(
+                    poolPairData,
+                    amount,
+                    creator
+                ).toString(),
+                18
+            );
             if (isCashToken) {
-                x = cashTokens;
-                y = securityTokens;
-            } else {
-                x = securityTokens;
-                y = cashTokens;
+                const cashAmountFixed = parseFixed(
+                    amount.toString(),
+                    poolPairData.currencyScalingFactor
+                );
+                amount = bnum(cashAmountFixed.toString());
             }
-
-            // p = (x' + x)/(y - z)
+            let spotPrice: OldBigNumber;
+            // sp = (x' + x)/(y - z)
+            // sp = security/currency
             // where,
             // x' - tokens coming in
             // x  - total amount of tokens of the same type as the tokens coming in
             // y  - total amount of tokens of the other type
             // z  - _exactTokenInForTokenOut
             // p  - spot price
-
-            const spotPrice = x
-                .add(amount.toString())
-                .div(y.sub(this._exactTokenInForTokenOut.toString()))
-                .toString();
-
+            const numerator = bnum(tokenInBalance.plus(amount));
+            const denominator = tokenOutBalance.sub(tokenOutCalculated);
+            spotPrice = numerator.dividedBy(denominator);
+            if (!isCashToken) {
+                spotPrice = bnum(1).dividedBy(spotPrice);
+            }
             return bnum(spotPrice);
-
         } catch (err) {
             console.error(`_evmoutGivenIn: ${err.message}`);
             return ZERO;
@@ -328,40 +504,51 @@ export class SecondaryIssuePool implements PoolBase {
 
     _spotPriceAfterSwapTokenInForExactTokenOut(
         poolPairData: SecondaryIssuePoolPairData,
-        amount: OldBigNumber
+        amount: OldBigNumber,
+        creator: string
     ): OldBigNumber {
         try {
+            const tokenInBalance = new Big(
+                poolPairData.allBalancesScaled[poolPairData.tokenIndexIn]
+            );
+            const tokenOutBalance = new Big(
+                poolPairData.allBalancesScaled[poolPairData.securityIndex]
+            );
             const isCashToken =
                 poolPairData.pairType === PairTypes.CashTokenToSecurityToken;
-
-            const cashTokens = poolPairData.balanceIn;
-            const securityTokens = poolPairData.balanceOut;
-
-            let x: BigNumber, y: BigNumber;
+            const tokenInCalculated = parseFixed(
+                this._tokenInForExactTokenOut(
+                    poolPairData,
+                    amount,
+                    creator
+                ).toString(),
+                18
+            );
 
             if (isCashToken) {
-                x = cashTokens;
-                y = securityTokens;
-            } else {
-                x = securityTokens;
-                y = cashTokens;
+                //Swap Currency OUT
+                const cashAmountFixed = parseFixed(
+                    amount.toString(),
+                    poolPairData.poolCurrencyScalingFactor
+                );
+                amount = bnum(cashAmountFixed.toString());
             }
-
-            // p = (x + z)/(y - y')
+            let spotPrice: OldBigNumber;
+            // sp = (x + z)/(y - y')
+            // sp = currency/security
             // where,
             // z - tokens coming in (_tokenInForExactTokenOut)
             // x  - total amount of tokens of the same type as the tokens coming in
             // y  - total amount of tokens of the other type
             // y'  - total amount of tokens going out
             // p  - spot price
-
-            const spotPrice = x
-                .add(this._tokenInForExactTokenOut.toString())
-                .div(y.sub(amount.toString()))
-                .toString();
-
-            return bnum(spotPrice.toString());
-
+            const numerator = bnum(tokenInBalance.plus(amount));
+            const denominator = tokenOutBalance.sub(tokenInCalculated);
+            spotPrice = numerator.dividedBy(denominator);
+            if (!isCashToken) {
+                spotPrice = bnum(1).dividedBy(spotPrice);
+            }
+            return bnum(spotPrice);
         } catch (err) {
             console.error(`_evmoutGivenIn: ${err.message}`);
             return ZERO;
@@ -381,5 +568,46 @@ export class SecondaryIssuePool implements PoolBase {
     ): OldBigNumber {
         return bnum(0);
     }
-    
+
+    getTokenAmount(
+        amount: OldBigNumber,
+        ordersDataScaled: OrdersScaled[],
+        scalingFactor: number,
+        orderType: string
+    ): OldBigNumber {
+        let returnAmount = BigInt(0);
+        for (let i = 0; i < ordersDataScaled.length; i++) {
+            const amountOffered = BigInt(
+                Number(ordersDataScaled[i].amountOffered)
+            );
+            const priceOffered = BigInt(
+                Number(ordersDataScaled[i].priceOffered)
+            );
+
+            const checkValue =
+                orderType === 'Sell'
+                    ? MathSol.divDownFixed(amountOffered, priceOffered)
+                    : MathSol.mulDownFixed(amountOffered, priceOffered);
+
+            if (checkValue <= Number(amount)) {
+                returnAmount = MathSol.add(returnAmount, amountOffered);
+            } else {
+                returnAmount = MathSol.add(
+                    returnAmount,
+                    orderType === 'Sell'
+                        ? MathSol.mulDownFixed(BigInt(Number(amount)), priceOffered )
+                        : MathSol.divDownFixed(BigInt(Number(amount)), priceOffered)
+                );
+            }
+            amount = bnum(Number(amount) - Number(checkValue));
+            if (Number(amount) < 0) break;
+        }
+
+        returnAmount =
+            orderType === 'Sell'
+                ? MathSol.divDown(returnAmount, BigInt(Number(scalingFactor)))
+         : returnAmount;
+
+        return bnum(Number(returnAmount));
+    }
 }

@@ -106,16 +106,33 @@ export interface SubgraphPoolBase {
     currency?: string;
 
     // Only Primary pool
-    openingPrice?: string;
-    maxPrice?: string;
+    minimumOrderSize?: string;
+    minimumPrice?: string;
     securityOffered?: string;
     cutoffTime?: string;
 
     // Only Secondary pool
-    secondaryOffer?: string;
-    bestUnfilledBid?: string;
-    bestUnfilledOffer?: string;
+    orders?: Orders[];
+    secondaryTrades?: SecondaryTrades[];
 }
+
+export type Orders = {
+    id: string;
+    tokenIn: SubgraphToken;
+    tokenOut: SubgraphToken;
+    amountOffered: string;
+    priceOffered: string;
+    orderReference: string;
+    creator: string;
+    timestamp: string;
+};
+
+export type SecondaryTrades = {
+    id: string;
+    orderReference: string;
+    amount: string;
+    price: string;
+};
 
 export type SubgraphToken = {
     address: string;
@@ -209,19 +226,23 @@ export interface PoolBase {
     updateTokenBalanceForPool: (token: string, newBalance: BigNumber) => void;
     _exactTokenInForTokenOut: (
         poolPairData: PoolPairBase,
-        amount: OldBigNumber
+        amount: OldBigNumber,
+        creator?: string
     ) => OldBigNumber;
     _tokenInForExactTokenOut: (
         poolPairData: PoolPairBase,
-        amount: OldBigNumber
+        amount: OldBigNumber,
+        creator?: string
     ) => OldBigNumber;
     _spotPriceAfterSwapExactTokenInForTokenOut: (
         poolPairData: PoolPairBase,
-        amount: OldBigNumber
+        amount: OldBigNumber,
+        creator?: string
     ) => OldBigNumber;
     _spotPriceAfterSwapTokenInForExactTokenOut: (
         poolPairData: PoolPairBase,
-        amount: OldBigNumber
+        amount: OldBigNumber,
+        creator?: string
     ) => OldBigNumber;
     _derivativeSpotPriceAfterSwapExactTokenInForTokenOut: (
         poolPairData: PoolPairBase,
