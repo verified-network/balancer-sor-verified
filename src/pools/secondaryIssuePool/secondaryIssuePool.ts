@@ -48,7 +48,7 @@ type OrdersScaled = Omit<
 
 type SecondaryTradesScaled = Omit<
     SecondaryTrades,
-    'id' | 'amountOffered' | 'priceOffered' | 'orderReference'
+    'id' | 'amount' | 'price' | 'orderReference'
 > & {
     orderReference: string;
     amountOffered: OldBigNumber;
@@ -185,12 +185,8 @@ export class SecondaryIssuePool implements PoolBase {
         const secondaryTradesScaled = this.secondaryTrades.map((order) => {
             return {
                 orderReference: order.orderReference,
-                amountOffered: bnum(
-                    parseFixed(order.amountOffered, 18).toString()
-                ),
-                priceOffered: bnum(
-                    parseFixed(order.priceOffered, 18).toString()
-                ),
+                amountOffered: bnum(parseFixed(order.amount, 18).toString()),
+                priceOffered: bnum(parseFixed(order.price, 18).toString()),
             };
         });
         let currencyScalingFactor: number;

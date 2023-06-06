@@ -130,8 +130,8 @@ export type Orders = {
 export type SecondaryTrades = {
     id: string;
     orderReference: string;
-    amountOffered: string;
-    priceOffered: string;
+    amount: string;
+    price: string;
 };
 
 export type SubgraphToken = {
