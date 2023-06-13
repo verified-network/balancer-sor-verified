@@ -370,8 +370,11 @@ export class PrimaryIssuePool implements PoolBase {
                 ),
                 poolPairData.decimalsIn
             );
-
-            return bnum(scaleTokensIn.toString());
+            const returnAmount = parseFloat(
+                scaleTokensIn.toString().slice(0, -1) +
+                    (parseInt(scaleTokensIn.toString().slice(-1)) + 1)
+            );
+            return bnum(returnAmount.toString());
         } catch (err) {
             console.error(`_evminGivenOut: ${err.message}`);
             return ZERO;

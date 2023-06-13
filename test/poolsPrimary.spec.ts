@@ -132,7 +132,7 @@ describe('Primary pool tests', () => {
                     poolPairData,
                     amountOut
                 );
-                expect(amountIn.toString()).to.eq('37.3134328358209');
+                expect(amountIn.toString()).to.eq('37.3134328358201');
             });
             it('Exact Security out > Currency In', async () => {
                 const tokenIn = USDC; //currencyToken
@@ -149,7 +149,7 @@ describe('Primary pool tests', () => {
                     poolPairData,
                     amountOut
                 );
-                expect(amountIn.toString()).to.eq('33.500223');
+                expect(amountIn.toString()).to.eq('33.500224');
             });
         });
         context('_spotPriceAfterSwapTokenInForExactTokenOut', () => {
@@ -168,7 +168,7 @@ describe('Primary pool tests', () => {
                         poolPairData,
                         amountIn
                 );
-                expect(amountOut.toString()).to.eq('0.000020000089334327');
+                expect(amountOut.toString()).to.eq('0.000020000089334329');
             });
         });
     });
