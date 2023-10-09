@@ -13,6 +13,7 @@ import {
     SubgraphPoolBase,
     SubgraphToken,
 } from '../../types';
+import cloneDeep from 'lodash.clonedeep';
 
 export enum PairTypes {
     CashTokenToSecurityToken,
@@ -27,7 +28,7 @@ type PrimaryIssuePoolToken = Pick<
 export type PrimaryIssuePoolPairData = PoolPairBase & {
     pairType: PairTypes;
     allBalances: OldBigNumber[];
-    allBalancesScaled: BigNumber[]; // EVM Maths uses everything in 1e18 upscaled format and this avoids repeated scaling
+    allBalancesScaled: bigint[]; // EVM Maths uses everything in 1e18 upscaled format and this avoids repeated scaling
     tokenIndexIn: number;
     tokenIndexOut: number;
     security: string;
@@ -145,9 +146,14 @@ export class PrimaryIssuePool implements PoolBase {
 
         // Get all token balances
         const allBalances = this.tokens.map(({ balance }) => bnum(balance));
-        const allBalancesScaled = this.tokens.map(({ balance }) =>
-            parseFixed(balance, 18)
+        let tokensClone = cloneDeep(this.tokens);
+        //upscale balances with their decimals according to upscaleArray function on basepool contract
+        //don't divide by 1e18 to avoid 0 result incase balance is too small  
+        tokensClone.map(({ balance, decimals }) => {
+            balance = MathSol.mul(BigInt(balance), BigInt(decimals)).toString();
+        }    
         );
+        const allBalancesScaled = tokensClone.map(({ balance }) => BigInt(balance));
         let currencyScalingFactor;
         if (isSameAddress(tokenIn, this.currency)) { 
             pairType = PairTypes.CashTokenToSecurityToken;
@@ -157,6 +163,7 @@ export class PrimaryIssuePool implements PoolBase {
             currencyScalingFactor = 10 ** (18 - decimalsOut);
         }
 
+        //Todo: add security scaling factor
         const poolPairData: PrimaryIssuePoolPairData = {
             id: this.id,
             address: this.address,
@@ -232,28 +239,27 @@ export class PrimaryIssuePool implements PoolBase {
         try {
             if (amount.isZero()) return ZERO;
 
-            const tokenInBalance = BigInt(
-                Number(
-                    poolPairData.allBalancesScaled[poolPairData.tokenIndexIn]
-                )
-            );
-            const tokenOutBalance = BigInt(
-                Number(
-                    poolPairData.allBalancesScaled[poolPairData.tokenIndexOut]
-                )
-            );
+            const tokenInBalance =  poolPairData.allBalancesScaled[poolPairData.tokenIndexIn]
+            const tokenOutBalance = poolPairData.allBalancesScaled[poolPairData.tokenIndexOut]
             const fixedAmount = BigInt(Number(amount));
-
             const isCashToken =
                 poolPairData.pairType === PairTypes.CashTokenToSecurityToken;
-
-            let tokensOut: BigInt;
+            let security: PrimaryIssuePoolToken | undefined;
+            let securityScalingFactor: number; 
+            let tokensOut: bigint;
             if (isCashToken) {
                 //Swap Currency IN
+                //upscale amount by tokenIn scaling factor as done on primary issue pool
+                //don't divide by 1e18 incase case amount is too small it will return 0;
+                //since tokenIn is currency use currencyscaling factor
                 const cashAmountFixed = MathSol.mul(
                     fixedAmount,
                     BigInt(poolPairData.currencyScalingFactor)
                 );
+                security = this.tokens.find((token) => 
+                    token.address.toLowerCase() === poolPairData.tokenOut.toLowerCase()
+                )
+                securityScalingFactor = 10 ** (18 -security!.decimals)
                 const numerator = MathSol.divDownFixed(
                     cashAmountFixed,
                     BigInt(Number(poolPairData.minimumPrice))
@@ -263,36 +269,45 @@ export class PrimaryIssuePool implements PoolBase {
                     tokenInBalance
                 );
                 tokensOut = MathSol.divDownFixed(numerator, denominator);
-                if (Number(tokensOut) < Number(poolPairData.minimumOrderSize))
+                if (tokensOut < BigInt(Number(poolPairData.minimumOrderSize)))
                     return ZERO;
+                if (tokenOutBalance < tokensOut) return ZERO;
+                //downscaledown amount out by tokenout scaling factor since currency is in security is tokenout
+                //don't use fixed method to get rid of 1e18 added from scaling of balances and amount
+                return bnum(MathSol.divDown(tokensOut, BigInt(securityScalingFactor)).toString());
             } else {
                 //Swap Security IN
-                if (Number(tokenInBalance) < 0) return ZERO;
-                if (Number(amount) < Number(poolPairData.minimumOrderSize))
+                security = this.tokens.find((token) => 
+                    token.address.toLowerCase() === poolPairData.tokenIn.toLowerCase()
+                )
+                securityScalingFactor = 10 ** (18 -security!.decimals)
+                if (tokenInBalance <= BigInt(0)) return ZERO;
+                if (fixedAmount < BigInt(Number(poolPairData.minimumOrderSize)))
                     return ZERO;
+                //upscale amount by tokenIn scaling factor as done on primary issue pool contract
+                //don't divide by 1e18 incase case amount is too small it will return 0;
+                //since tokenIn is currency use currencyscaling factor
+                const scaledAmount = MathSol.mul(
+                    BigInt(Number(amount)),
+                    BigInt(securityScalingFactor)
+                );
                 const numerator = MathSol.divDownFixed(
-                    MathSol.add(tokenInBalance, fixedAmount),
+                    MathSol.add(tokenInBalance, scaledAmount),
                     tokenInBalance
                 );
                 const denominator = MathSol.mulDownFixed(
-                    fixedAmount,
+                    scaledAmount,
                     BigInt(Number(poolPairData.minimumPrice))
                 );
                 tokensOut = MathSol.mulDownFixed(numerator, denominator);
 
-                tokensOut = MathSol.divDown(
-                    BigInt(Number(tokensOut)),
-                    BigInt(poolPairData.currencyScalingFactor)
-                );
+                if(MathSol.divDownFixed(tokensOut, scaledAmount) < BigInt(Number(poolPairData.minimumPrice))) 
+                return ZERO;
+                if (tokenOutBalance < tokensOut) return ZERO;
+                //downscaledown amount out by tokenout scaling factor since security is in currency is tokenout
+                //don't use fixed method to get rid of 1e18 added from scaling of balances and amount
+                return bnum(MathSol.divDown(tokensOut, BigInt(poolPairData.currencyScalingFactor)).toString());
             }
-            const scaleTokensOut = formatFixed(
-                BigNumber.from(
-                    Math.trunc(Number(tokensOut.toString())).toString()
-                ),
-                poolPairData.decimalsOut
-            );
-            if (Number(tokenOutBalance) < Number(tokensOut)) return ZERO;
-            return bnum(scaleTokensOut);
         } catch (err) {
             console.error(`_evmoutGivenIn: ${err.message}`);
             return ZERO;
@@ -320,58 +335,71 @@ export class PrimaryIssuePool implements PoolBase {
 
             const isCashToken =
                 poolPairData.pairType === PairTypes.CashTokenToSecurityToken;
-
-            let tokensIn: BigInt;
+            let scaledAmount: bigint;
+            let security: PrimaryIssuePoolToken | undefined;
+            let securityScalingFactor: number;
+            let tokensIn: bigint;
             if (!isCashToken) {
                 //Swap Currency OUT
-                if (Number(tokenInBalance) < 0) return ZERO;
-                const cashAmount = MathSol.mul(
+                if (tokenInBalance <= BigInt(0)) return ZERO;
+                //upscale amount by tokenOut scaling factor as done on primary issue pool contract
+                //don't divide by 1e18 incase case amount is too small it will return 0;
+                //since tokenIn is security use currencyscaling factor
+                scaledAmount = MathSol.mul(
                     fixedAmount,
                     BigInt(poolPairData.currencyScalingFactor)
                 );
-                if (Number(cashAmount) >= Number(tokenOutBalance)) return ZERO;
+                if (scaledAmount >= tokenOutBalance) return ZERO;
 
                 const numerator = MathSol.divDownFixed(
-                    cashAmount,
+                    scaledAmount,
                     BigInt(Number(poolPairData.minimumPrice))
                 );
                 const denominator = MathSol.divDownFixed(
                     tokenOutBalance,
-                    MathSol.sub(tokenOutBalance, cashAmount)
+                    MathSol.sub(tokenOutBalance, scaledAmount)
                 );
                 tokensIn = MathSol.divDownFixed(numerator, denominator);
-
-                if (Number(tokensIn) < Number(poolPairData.minimumOrderSize))
+                if (tokensIn < BigInt(Number(poolPairData.minimumOrderSize)))
                     return ZERO;
+                if (MathSol.divDownFixed(scaledAmount, tokensIn)  < BigInt(Number(poolPairData.minimumPrice)))
+                return ZERO;
+                security = this.tokens.find((token) => 
+                token.address.toLowerCase() === poolPairData.tokenIn.toLowerCase()
+                )
+                securityScalingFactor = 10 ** (18 -security!.decimals)
+                //downScaleUp tokensin with tokenIn scaling factor
+                //don't use fixed method to get rid of 1e18 added from scaling of balances and amount
+                return bnum(MathSol.divUp(tokensIn, BigInt(securityScalingFactor)).toString());
             } else {
                 //Swap Security OUT
-                if (Number(amount) >= Number(tokenOutBalance)) return ZERO;
-                if (Number(amount) < Number(poolPairData.minimumOrderSize))
+               security = this.tokens.find((token) => 
+                token.address.toLowerCase() === poolPairData.tokenOut.toLowerCase()
+                )
+                securityScalingFactor = 10 ** (18 -security!.decimals)
+                //upscale amount by tokenOut scaling factor as done on primary issue pool contract
+                //don't divide by 1e18 incase case amount is too small it will return 0;
+                //since tokenIn is currency use security factor
+                scaledAmount = MathSol.mul(fixedAmount, BigInt(securityScalingFactor));
+                if (scaledAmount >= tokenOutBalance) return ZERO;
+                if (scaledAmount < Number(poolPairData.minimumOrderSize))
                     return ZERO;
                 const numerator = MathSol.divDownFixed(
                     tokenOutBalance,
-                    MathSol.sub(tokenOutBalance, fixedAmount)
+                    MathSol.sub(tokenOutBalance, scaledAmount)
                 );
                 const denominator = MathSol.mulDownFixed(
-                    fixedAmount,
+                    scaledAmount,
                     BigInt(Number(poolPairData.minimumPrice))
                 );
 
                 tokensIn = MathSol.mulDownFixed(numerator, denominator);
-                tokensIn = MathSol.divDown(
-                    BigInt(Number(tokensIn)),
-                    BigInt(poolPairData.currencyScalingFactor)
-                );
+                if(MathSol.divDownFixed(tokensIn, scaledAmount) < BigInt(Number(poolPairData.minimumPrice)))
+                return ZERO;
+                //downScaleUp tokensin with tokenIn scaling factor as done on primary pool contract
+                //don't use fixed method to get rid of 1e18 added from scaling of balances and amount
+                return bnum(MathSol.divUp(tokensIn, BigInt(poolPairData.currencyScalingFactor)).toString());    
             }
-
-            const scaleTokensIn = formatFixed(
-                BigNumber.from(
-                    Math.trunc(Number(tokensIn.toString())).toString()
-                ),
-                poolPairData.decimalsIn
-            );
-
-            return bnum(scaleTokensIn.toString());
         } catch (err) {
             console.error(`_evminGivenOut: ${err.message}`);
             return ZERO;
