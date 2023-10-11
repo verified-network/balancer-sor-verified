@@ -94,8 +94,8 @@
             "totalShares": "2000.000000",
             "security": "0x19d080d458fdadb9524cf6d0c0d7830addd1dd08",
             "currency": "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
-            "minimumPrice": "1",
-            "minimumOrderSize": "0.625",
+            "minimumPrice": "0.625",
+            "minimumOrderSize": "1",
             "securityOffered": "US123456789",
             "cutoffTime": "1667061666"
         }
