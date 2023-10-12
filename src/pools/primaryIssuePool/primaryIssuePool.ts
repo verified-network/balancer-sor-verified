@@ -151,7 +151,7 @@ export class PrimaryIssuePool implements PoolBase {
         this.tokens.map(({balance, decimals}) => {
             //scale them to their decimals unit to get rid of .
             const fixedBalance = BigInt(Number(scale(bnum(balance), decimals)));
-                allBalancesScaled.push(MathSol.mulUpFixed(fixedBalance, BigInt( 10 ** 18 * 10 ** (18 - decimals))))
+                allBalancesScaled.push(MathSol.mulUpFixed(fixedBalance, BigInt( 10 ** 18) * BigInt( 10 ** (18 - decimals))))
         })
         let currencyScalingFactor: bigint;
         if (isSameAddress(tokenIn, this.currency)) { 
@@ -247,7 +247,6 @@ export class PrimaryIssuePool implements PoolBase {
             if (isCashToken) {
                 //Swap Currency IN
                 //upscale amount by tokenIn scaling factor as done on primary issue pool
-                //since tokenIn is currency use currencyscaling factor
                 const scaledAmount = MathSol.mulDownFixed(
                     fixedAmount,
                     poolPairData.currencyScalingFactor
@@ -280,7 +279,6 @@ export class PrimaryIssuePool implements PoolBase {
                 securityScalingFactor = BigInt(10 ** 18) * BigInt(10 ** (18 -security!.decimals))
                 if (tokenInBalance <= BigInt(0)) return ZERO;
                 //upscale amount by tokenIn scaling factor as done on primary issue pool contract
-                //since tokenIn is currency use currencyscaling factor
                 const scaledAmount = MathSol.mulDownFixed(
                     BigInt(Number(amount)),
                     securityScalingFactor
@@ -338,7 +336,6 @@ export class PrimaryIssuePool implements PoolBase {
                 //Swap Currency OUT
                 if (tokenInBalance <= BigInt(0)) return ZERO;
                 //upscale amount by tokenOut scaling factor as done on primary issue pool contract
-                //since tokenIn is security use currencyscaling factor
                 scaledAmount = MathSol.mulDownFixed(
                     fixedAmount,
                     BigInt(poolPairData.currencyScalingFactor)
@@ -366,7 +363,6 @@ export class PrimaryIssuePool implements PoolBase {
                 )
                 securityScalingFactor = BigInt(10 ** 18) * BigInt(10 ** (18 - security!.decimals))
                 //downScaleUp tokensin with tokenIn scaling factor
-                //don't use fixed method to get rid of 1e18 added from scaling of balances and amount
                 return bnum(MathSol.divUpFixed(tokensIn, BigInt(securityScalingFactor)).toString());
             } else {
                 //Swap Security OUT
@@ -375,7 +371,6 @@ export class PrimaryIssuePool implements PoolBase {
                 )
                 securityScalingFactor = BigInt(10 ** 18) * BigInt( 10 ** (18 - security!.decimals))
                 //upscale amount by tokenOut scaling factor as done on primary issue pool contract
-                //since tokenIn is currency use security factor
                 scaledAmount = MathSol.mulDownFixed(fixedAmount, BigInt(securityScalingFactor));
                 if (scaledAmount >= tokenOutBalance) return ZERO;
                 if (scaledAmount < BigInt(Number(poolPairData.minimumOrderSize)))
