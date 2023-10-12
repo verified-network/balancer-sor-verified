@@ -48,6 +48,56 @@
             "minimumOrderSize": "1",
             "securityOffered": "US123456789",
             "cutoffTime": "1667061666"
+        },
+        {
+            "id": "0x1b96d5660be3e948ddf331aa05e46c59c6a832f4000000000000000000000b97",
+            "address": "0x1b96d5660be3e948ddf331aa05e46c59c6a832f4",
+            "poolType": "PrimaryIssue",
+            "publicSwap": true,
+            "swapFee": "0.01",
+            "swapEnabled": true,
+            "tokens": [
+              {
+                "address": "0x19d080d458fdadb9524cf6d0c0d7830addd1dd08",
+                "decimals": 18,
+                "balance": "7998",
+                "id": "linear2id-0x0000000000000000000000000000000000000002",
+                "symbol": "bDAI",
+                "priceRate": "1",
+                "weight": null
+                
+              },
+              {
+                "address": "0x1b96d5660be3e948ddf331aa05e46c59c6a832f4",
+                "decimals": 18,
+                "balance": "75000",
+                "id": "linear2id-0x0000000000000000000000000000000000000002",
+                "symbol": "bpt",
+                "priceRate": "1",
+                "weight": null
+              },
+              {
+                "address": "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+                "decimals": 6,
+                "balance": "2.250160",
+                "id": "linear2id-0x6b175474e89094c44da98b954eedeac495271d0f",
+                "symbol": "USDC",
+                "priceRate": "1",
+                "weight": null
+              }
+            ],
+            "tokensList": [
+                "0x19d080d458fdadb9524cf6d0c0d7830addd1dd08",
+                "0x1b96d5660be3e948ddf331aa05e46c59c6a832f4",
+                "0x2791bca1f2de4661ed88a30c99a7a9449aa84174"
+            ],
+            "totalShares": "2000.000000",
+            "security": "0x19d080d458fdadb9524cf6d0c0d7830addd1dd08",
+            "currency": "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+            "minimumPrice": "0.625",
+            "minimumOrderSize": "1",
+            "securityOffered": "US123456789",
+            "cutoffTime": "1667061666"
         }
     ]
 }
