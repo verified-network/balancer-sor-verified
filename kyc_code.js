@@ -4,7 +4,9 @@ import { walletconnect, injected } from "../../components/common/walletConnect/c
 import VerticallyModal from "../../components/modal/VerticallyModal";
 import SumsubWebSdk from "@sumsub/websdk-react";
 import HelperModal from "./helperModal";
+import { Client, contractAddress } from "@verified-network/verified-sdk";
 
+// below is the function for Sumsub verification 
 export const fetchSumsubAccessToken = async (account, networkId) => {
     const response = await axios.get(`https://verified-kyc.azurewebsites.net/api/sumsub?account=${account}&networkId=${networkId}`)
     .then((response) => {return response.data});
@@ -74,6 +76,57 @@ function SumsubModal(props) {
     </>
   );
 }
+
+// below functions are for KYC check
+   const login = async () => {
+        const result = await fetchUserRole();
+        if (result) {
+            setUserRole(result);
+        }
+    };
+
+    const fetchUserRole = async () => {
+        if(library)
+        {
+            const provider = new ethers.providers.Web3Provider(library.provider);
+            const signer = provider.getSigner();
+            const address = await signer.getAddress();
+            const clientAddress = contractAddress[chainId].Client;
+            const clientContract = new Client(signer, clientAddress);
+            if(clientContract)
+            {   
+                const data = await clientContract.getRole(address)
+                                    .then((response) => Response.array(response))
+                                    .then((response) => Response.parseBytes32Value(response[0]))
+                                    .then((role) => {
+                                        return role;
+                                    });
+                const kycDataResponse = await clientContract.getClientKYC(address);
+                const result = kycDataResponse.response.result;
+                const kycStatus = Number(result[3]);
+                console.log("kycStatus",kycStatus);
+                setKYCstatus(kycStatus);
+                setLoggedIn(true);
+                return data;
+            }
+        }
+    };
+    const SUCCESS = 0;
+    function parseBytes32Value(text) {
+      return ethers.utils.parseBytes32String(text);
+    }
+    function array(response) {
+      if (response.status === SUCCESS) {
+        return Promise.resolve(response.response.result);
+      } else {
+        return Promise.reject(response.reason);
+      }
+    }
+
+    if(kycStatus === 0)
+    {
+      // Perform action: User have not completed their KYC
+    }
 
 export default function KYCModal(props) {
   return <SumsubModal {...props} />;
